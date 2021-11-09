@@ -242,7 +242,8 @@ Function filterDFT(atomName,fnum,tval,ovpmax,maxRot,LUMOwave,[broadShift,erange,
 		endif
 	
 		//Wrapper function that fits clustered BB peaks to original DFT NEXAFS
-		Variable pDiff1 = ampFittingWrapper(baseFolderName,tval,ovpMax,Eini,Efin,gRes)
+		Variable pDiff1 = ampFittingWrapper(baseFolderName,tval,ovpMax,Eini,erange,gRes)
+		//Variable pDiff1 = ampFittingWrapper(baseFolderName,tval,ovpMax,Eini,Efin,gRes)
 		
 		//Wrapper function that fits DFT BB Model to Experimental NEXAFS
 		if(StringMatch(modelAlpha,"yes"))				
@@ -250,7 +251,7 @@ Function filterDFT(atomName,fnum,tval,ovpmax,maxRot,LUMOwave,[broadShift,erange,
 			simDFT(tval,ovpmax,IPwave,mol,alpha,i0,phi,expSpecName,expEnergyName,expFolderPath,fit,rigidShift,thetaList,anchorStep1,anchorStep2,anchorExp1,anchorExp2,stepWid1,stepWid2,stepE1,stepE2,holdAmps=holdAmps,holdWidths=holdWidths,holdPos=holdPos,d=1,NEXAFStype=NEXAFStype,maskEnergy1=maskEnergy1,maskEnergy2=maskEnergy2,pkToRefine=pkToRefine,holdModTheta=holdTensorElems)
 		endif
 	endif
-	vARIABLE V = 1
+	Variable V = 1
 	if(V)
 	plotRawDFTvsClusterDFT(tval,ovpMax,mol)
 	plotParamChanges(tval,ovpMax,alpha,mol)

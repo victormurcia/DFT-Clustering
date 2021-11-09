@@ -83,7 +83,7 @@ Function initialTransitionsWrapper(fnum,atomName,erange,baseFolderName,Eini,Efin
 	
 	print "Making peaks for original transitions"
 	//Prepare to make original peaks prior to filtering
-	origPeaksPrep(baseFolderName,atomName,fnum,Eini,Efin,gRes,"f0")
+	origPeaksPrep(baseFolderName,atomName,fnum,Eini,erange,gRes,"f0")
 	Wave nF0Trans
 	WaveStats/Q nF0Trans
 	
@@ -98,7 +98,7 @@ Function initialTransitionsWrapper(fnum,atomName,erange,baseFolderName,Eini,Efin
 	
 	//Make peaks from each TDM component
 	print "Making peaks derived from TDM components"
-	makeNEXAFS(allParamsSorted,Eini,Efin,gRes,"f0")
+	makeNEXAFS(allParamsSorted,Eini,erange,gRes,"f0")
 	print "Organizing original peaks"
 	//Organize original peaks
 	organizePeaks(atomName,baseFolderName,"f0")
@@ -141,7 +141,7 @@ Function osFilteredTransitionsWrapper(fnum,atomName,erange,baseFolderName,Eini,E
 
 	//Make peaks from each TDM component
 	print "Making peaks derived from TDM components"
-	makeNEXAFS(allParamsF1Sorted,Eini,Efin,gRes,"f1")
+	makeNEXAFS(allParamsF1Sorted,Eini,erange,gRes,"f1")
 	print "Organizing data..."
 	//Organize the peaks from first filtering into a folder
 	organizePeaks(atomName,baseFolderName,"f1")	

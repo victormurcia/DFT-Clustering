@@ -150,22 +150,6 @@ Function getAmpFitWaves(baseFolderName,tval,ovpMax)
 	
 End
 
-Function removeUselessPeaks(pWave)
-
-	Wave pWave
-	
-	Variable tol = 1e-6
-	Variable n = numpnts(pWave)
-	Variable i
-	for(i=n-1;i>=0;i-=3)
-		Variable amp = pWave[i]
-		if(amp <= tol)
-			DeletePoints i-2,3,pWave
-		endif
-	endfor
-
-End
-
 Function calcPercentDiff(oriSpec,mergeFitSpec)
 	Wave oriSpec,mergeFitSpec
 	
@@ -375,10 +359,6 @@ Function fitAmplitudes2(pWave,spec2Fit,Eini,Efin,sym,tval,ovpMax)
 	FuncFit/Q/H=H fitRandGauss , pw1D, spec2fit /X=energy /D=fitSpec /R=res /E=eps /C=con	
 	placeFitAmpIn2DPW(pw1D,pWave)
 	
-	//Calculate percent difference between original NEXAFS and merged DFT
-	//NVAR perDiff = root:perDiff
-	//perDiff = calcPercentDiff(spec2fit,fitSpec)	
-	
 	//Make the merged Spectrum using the original parameter wave
 	Wave mergeSpec = $merSpecName
 	Wave mergeSpec2 = makeMergeSpec(pw1dOriginal,mergeSpec,energy)
@@ -388,29 +368,6 @@ Function fitAmplitudes2(pWave,spec2Fit,Eini,Efin,sym,tval,ovpMax)
 	makeFittedOSWave(pw1D,numPeaks)
 	Wave OS, En	
 	
-	//Plot the target spectra, the fit, the original merged spectrum and the residuals
-	//String graphName = "ampFit_OS" + replacestring(".",num2str(tval),"p") + "_OVP" + replacestring(".",num2str(ovpMax),"p") + "_" + sym// + "_" + num2str(pass)
-	//String targetSpecName = NameOfWave(spec2fit)
-	//DoWindow $graphName
-	//if(!V_Flag)
-	//	Display/N=$graphName/W=(0,0,400,500)/K=1 spec2fit,fitSpec,mergeSpec vs energy
-	//	Label left sym + "Transition Intensity [a.u.]\\U"
-	//	Label bottom "Transition Energy[eV]"
-	//	NewFreeAxis/L residual
-	//	NewFreeAxis/L oss
-	//	ModifyGraph axisEnab(oss)={0,0.2},axisEnab(left)={0.25,0.75},axisEnab(residual)={0.8,1},freePos(residual)=0, freePos(oss)=0,lblPosMode=1
-	//	AppendToGraph/L=residual res
-	//	AppendToGraph/L=oss OS vs En
-	//	ModifyGraph lsize=1.5,lstyle($fitSpecName)=3,rgb($fitSpecName)=(0,0,0),rgb(res)=(52428,34958,1),rgb($merSpecName)=(2,39321,1),grid=2,mirror=1,nticks=5,minor=1,fStyle=1,lsize($fitSpecName)= 2.5
-	//	ModifyGraph mode(OS)=1,rgb(OS)=(1,9611,39321),mirror(bottom)=2,log(oss)=1
-	//	WaveStats/Q res
-	//	SetAxis residual V_min,V_max
-	//	Label residual "Residual\\U"
-	//	WaveStats/Q OS
-	//	SetAxis oss 0.001,1
-	//	Label oss "OS [a.u.]\\U"
-	//	Legend/C/N=text0/J/A=RC/X=4.11/Y=-1.88 "OS = " + num2str(tval) + "% OVP=" + num2str(ovpMax) + "%\r\\s("+ targetSpecName + ") Unfiltered\r\\s("+fitSpecName+") Fit\r\\s("+merSpecName+") Merged\r\\s(res) Residual\r% Diff = " + num2str(perDiff) +"%\r\\s(OS) OS"
-	//endif
 	return perDiff
 End
 

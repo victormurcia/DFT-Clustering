@@ -2466,7 +2466,7 @@ Function plotParamChanges(osVal,ovpVal,alpha,mol)
 	String iniFolder = "root:Packages:DFTClustering:PolarAngles_"+mol+":"//GetDataFolder(1)
 	String ampFolder = iniFolder + "TransitionFiltering_" + replaceString(".",num2str(osVal),"p")+"OS_" +replaceString(".",num2str(ovpVal),"p")+"OVP:AmplitudeFitting:Alpha_"+ replaceString(".",num2str(alpha),"p")+":TensorMisc:"
 	SetDataFolder $ampFolder
-	Wave ampChange,enChange,modThetaChange,fitTDMTheta,iniTDMTheta
+	Wave ampChange,enChange,modThetaChange,fitTDMTheta,iniTDMTheta,widChange
 
 	DoWindow ParamChangePlot
 	if(!V_Flag)
@@ -2474,17 +2474,21 @@ Function plotParamChanges(osVal,ovpVal,alpha,mol)
 		NewFreeAxis/L deltaEn 
 		NewFreeAxis/L deltaTh
 		NewFreeAxis/L deltaTDM
+		NewFreeAxis/L widths
 		AppendToGraph/W=ParamChangePlot/L=deltaEn enChange
 		AppendToGraph/W=ParamChangePlot/L=deltaTh modThetaChange
 		AppendToGraph/W=ParamChangePlot/L=deltaTDM fitTDMTheta,iniTDMTheta//tdmThetaChange
+		AppendToGraph/W=ParamChangePlot/L=widths widChange
 		ModifyGraph mirror=1,minor=1,fStyle=1,fSize=14,lblPosMode(left)=1,lblPosMode(deltaEn)=1,lblPosMode(deltaTh)=1,lblPosMode(deltaTDM)=1
-		ModifyGraph axisEnab(left)={0,0.22},axisEnab(deltaEn)={0.25,0.47},axisEnab(deltaTh)={0.5,0.72},axisEnab(deltaTDM)={0.75,1},freePos(deltaEn)=0,freePos(deltaTh)=0,freePos(deltaTDM)=0
-		ModifyGraph mode=4,marker=19,rgb(enChange)=(1,34817,52428),rgb(modThetaChange)=(1,39321,19939),rgb(iniTDMTheta)=(0,0,0)//,rgb(tdmThetaChange)=(19729,1,39321)
+		ModifyGraph freePos(deltaEn)=0,freePos(deltaTh)=0,freePos(deltaTDM)=0
+		ModifyGraph mode=4,marker=19,rgb(enChange)=(1,34817,52428),rgb(modThetaChange)=(1,39321,19939),rgb(iniTDMTheta)=(0,0,0),rgb(fitTDMTheta)=(19729,1,39321),rgb(widChange)=(0,2,26214)
 		Label left "log(A\\BF\\M/A\\BI\\M)"
 		Label deltaEn "∆E/FWHM"
 		Label deltaTh "∆θ[°]"
 		Label deltaTDM "Final,Initial[°]"
 		Label bottom "Cluster ID"
+		ModifyGraph mirror=1,fStyle=1,fSize=14,lblPosMode(widths)=1,axisEnab(left)={0,0.19},axisEnab(deltaEn)={0.22,0.39},axisEnab(deltaTh)={0.42,0.59},axisEnab(deltaTDM)={0.62,0.79},axisEnab(widths)={0.81,1},freePos(widths)=0;DelayUpdate
+		Label widths "∆FWHM"
 		SetAxis deltaEn -1,1
 		SetAxis deltaTh -90,90
 		ModifyGraph manTick(deltaTh)={0,45,0,0},manMinor(deltaTh)={2,0}
@@ -2492,6 +2496,7 @@ Function plotParamChanges(osVal,ovpVal,alpha,mol)
 		ModifyGraph manTick(deltaTDM)={0,45,0,0},manMinor(deltaTDM)={2,0}
 		SetAxis left -1,1
 		ModifyGraph zero(left)=1,zero(deltaEn)=1,zero(deltaTh)=1,zero(deltaTDM)=1,zeroThick(left)=2,zeroThick(deltaEn)=2,zeroThick(deltaTh)=2,zeroThick(deltaTDM)=2
+		SetAxis widths -1,1
 	else
 		DoWindow/F ParamChangePlot
 		String tlist = TraceNameList("ParamChangePlot",";",1)
@@ -2504,14 +2509,17 @@ Function plotParamChanges(osVal,ovpVal,alpha,mol)
 		AppendToGraph/W=ParamChangePlot/L=deltaEn enChange
 		AppendToGraph/W=ParamChangePlot/L=deltaTh modThetaChange
 		AppendToGraph/W=ParamChangePlot/L=deltaTDM fitTDMTheta,iniTDMTheta//tdmThetaChange
+		AppendToGraph/W=ParamChangePlot/L=widths widChange
 		ModifyGraph mirror=1,minor=1,fStyle=1,fSize=14,lblPosMode(left)=1,lblPosMode(deltaEn)=1,lblPosMode(deltaTh)=1,lblPosMode(deltaTDM)=1
-		ModifyGraph axisEnab(left)={0,0.22},axisEnab(deltaEn)={0.25,0.47},axisEnab(deltaTh)={0.5,0.72},axisEnab(deltaTDM)={0.75,1},freePos(deltaEn)=0,freePos(deltaTh)=0,freePos(deltaTDM)=0
-		ModifyGraph mode=4,marker=19,rgb(enChange)=(1,34817,52428),rgb(modThetaChange)=(1,39321,19939),rgb(iniTDMTheta)=(0,0,0)//,rgb(tdmThetaChange)=(19729,1,39321)
+		ModifyGraph freePos(deltaEn)=0,freePos(deltaTh)=0,freePos(deltaTDM)=0
+		ModifyGraph mode=4,marker=19,rgb(enChange)=(1,34817,52428),rgb(modThetaChange)=(1,39321,19939),rgb(iniTDMTheta)=(0,0,0),rgb(fitTDMTheta)=(19729,1,39321),rgb(widChange)=(0,2,26214)
 		Label left "log(A\\BF\\M/A\\BI\\M)"
 		Label deltaEn "∆E/FWHM"
 		Label deltaTh "∆θ[°]"
 		Label deltaTDM "Final,Initial[°]"
 		Label bottom "Cluster ID"
+		ModifyGraph mirror=1,fStyle=1,fSize=14,lblPosMode(widths)=1,axisEnab(left)={0,0.19},axisEnab(deltaEn)={0.22,0.39},axisEnab(deltaTh)={0.42,0.59},axisEnab(deltaTDM)={0.62,0.79},axisEnab(widths)={0.81,1},freePos(widths)=0;DelayUpdate
+		Label widths "∆FWHM"
 		SetAxis deltaEn -1,1
 		SetAxis deltaTh -90,90
 		ModifyGraph manTick(deltaTh)={0,45,0,0},manMinor(deltaTh)={2,0}
@@ -2519,6 +2527,7 @@ Function plotParamChanges(osVal,ovpVal,alpha,mol)
 		ModifyGraph manTick(deltaTDM)={0,45,0,0},manMinor(deltaTDM)={2,0}
 		SetAxis left -1,1
 		ModifyGraph zero(left)=1,zero(deltaEn)=1,zero(deltaTh)=1,zero(deltaTDM)=1,zeroThick(left)=2,zeroThick(deltaEn)=2,zeroThick(deltaTh)=2,zeroThick(deltaTDM)=2
+		SetAxis widths -1,1
 	endif
 	
 	SetDataFolder $iniFolder
@@ -2534,6 +2543,9 @@ Function plotDFTBBvsEXP(thetaList,osVal,ovpVal,alpha,mol)
 	
 	Variable n = ItemsInList(thetaList),i,pDiff
 	SetDataFolder $fitFolder
+	Wave rcs,alphaFit
+	Variable rcsVal = rcs[1]
+	Variable alphaVal = alphaFit[0]
 	Make/O/N=(n) percentDiff
 	String fitNXFS = WaveList("fitResult*",";","")
 	String pks = WaveList("pk*"+num2str(2),";","")
@@ -2611,7 +2623,7 @@ Function plotDFTBBvsEXP(thetaList,osVal,ovpVal,alpha,mol)
 				legendPortion += theta + "° \\s('"+ expSpec +"') \\s('" + dftSpec +"') " + num2str(percentDiff[i]) 
 			endif
 		endfor
-		Legend/C/A=RT/N=text0/J/W=ModelvsExpPlot totalLegend + legendPortion	 + "\r\\JC# of Peaks = "+num2str(npks)+"\rΧ\\S2\\M="//++"
+		Legend/C/A=RT/N=text0/J/W=ModelvsExpPlot totalLegend + legendPortion	 + "\r\\JC# of Peaks = "+num2str(npks)+"\rΧ\\S2\\M="+num2str(rcsVal)+"\rα="+num2str(alphaVal)+"°"
 	else
 		DoWindow/F ModelvsExpPlot
 		//Remove old traces
@@ -2687,7 +2699,7 @@ Function plotDFTBBvsEXP(thetaList,osVal,ovpVal,alpha,mol)
 				legendPortion += theta + "° \\s('"+ expSpec +"') \\s('" + dftSpec +"') " + num2str(percentDiff[i]) 
 			endif
 		endfor
-		Legend/C/A=RT/N=text0/J/W=ModelvsExpPlot totalLegend + legendPortion	 + "\r\\JC# of Peaks = "+num2str(npks)+"\rΧ\\S2\\M="//++"
+		Legend/C/A=RT/N=text0/J/W=ModelvsExpPlot totalLegend + legendPortion	 + "\r\\JC# of Peaks = "+num2str(npks)+"\rΧ\\S2\\M="+num2str(rcsVal)+"\rα="+num2str(alphaVal)+"°"
 	endif
 	SetDataFolder $iniFolder
 End

@@ -100,13 +100,13 @@ Function simDFT(tval,ovpVal,IPwave,mol,alpha,i0,phi,expSpecName,expEnergyName,ex
 	Variable npnts = numpnts(allExpSpec)
 	//Make Hold String for fit. Open amplitudes, hold position and width constant
 	Variable pks2Fit = nPeaks//This value can be changed to troubleshoot singular matrix errors
-	String H1 = makeHoldString(holdAmps,holdWidths,holdPos,pWave1D,holdModTheta)
+	String H1 = makeHoldString(holdAmps,holdWidths,holdPos,pWave1D,holdModTheta,1)
 	
 	//Set up values for epsilon wave
-	Wave eps1 = makeEpsiltonWave(pWave1D,holdAmps,holdWidths,holdPos,holdModTheta)
+	Wave eps1 = makeEpsiltonWave(pWave1D,holdAmps,holdWidths,holdPos,holdModTheta,1)
 
 	//Make constraint wave	
-	Wave/T constraint1 = makeConstraintWave(holdAmps,holdWidths,holdPos,nPeaks,pWave1D,1)
+	Wave/T constraint1 = makeConstraintWave(holdAmps,holdWidths,holdPos,nPeaks,pWave1D,holdmodTheta)
 	
 	//Do the fit or model the data using a set of DFT-BB peaks
 	if(StringMatch(fit,"yes"))
@@ -117,15 +117,29 @@ Function simDFT(tval,ovpVal,IPwave,mol,alpha,i0,phi,expSpecName,expEnergyName,ex
 			Wave refitpWave = $newpwName
 			Abort
 		else
+			//Fit1 --> Open amp,position and modTheta
 			Duplicate/O pwI0, pwFit
-			Make/O/N=1 rcs
-			FuncFit/Q/H=H1/M=2 simDFTfit2,pwFit, allExpSpec /X={allExpEnergy,valuesPolar,allDFTSteps} /R=res /E=eps1 /C=constraint1 /D=results
-			//Duplicate/O pwI0, pwCopy2
+			Make/O/N=2 rcs,alphaFit
+			FuncFit/Q/H=H1/M=2 simDFTfit2,pwFit, allExpSpec /X={allExpEnergy,valuesPolar,allDFTSteps} /R=res /E=eps1 /C=constraint1 /D=results1
+			Wave pwFit
+			NVAR redChiSq = root:redChiSq 
+			redChiSq = calcRedChiSq(allExpSpec,results1)
+			print "The Chi Squared is: ",V_Chisq
+			print "The reduced Chi Squared is: ",redChiSq
+			rcs[0] = redChiSq
+			Wave M_Covar,W_Sigma,pwMolAdj
+			//Fit2 --> Open everything
+			Duplicate/O pwFit, pwFit2
+			H1 = makeHoldString(0,0,0,pwFit2,0,0)
+			Wave eps1 = makeEpsiltonWave(pwFit2,0,0,0,0,0)
+			Wave/T constraint1 = makeConstraintWave(0,0,0,nPeaks,pwFit2,1)
+			FuncFit/Q/H=H1/M=2 simDFTfit2,pwFit2, allExpSpec /X={allExpEnergy,valuesPolar,allDFTSteps} /R=res /E=eps1 /C=constraint1 /D=results
 			NVAR redChiSq = root:redChiSq 
 			redChiSq = calcRedChiSq(allExpSpec,results)
 			print "The Chi Squared is: ",V_Chisq
 			print "The reduced Chi Squared is: ",redChiSq
-			rcs[0] = redChiSq
+			rcs[1] = redChiSq
+			alphaFit[0] = pwFit2[2]
 			Wave M_Covar,W_Sigma,pwMolAdj
 		endif
 		Variable V_FitQuitReason
@@ -156,8 +170,8 @@ Function simDFT(tval,ovpVal,IPwave,mol,alpha,i0,phi,expSpecName,expEnergyName,ex
 		endfor
 	elseif(!refine)
 		alphaModelPlotting(fit,allExpEnergy,allExpSpec,allStepEnergy,allDFTSteps,results,totalNEXAFS,nSpec,nPeaks,pwAlpha,tval,ovpVal,thetaList,d,NEXAFStype)		
-		getAmpEnFromFit(pwFit,pwI0,round(pwFit[2]),tval,ovpVal,pwMolAdj)
-		organizeTensorWaves(round(pwFit[2]),fit)
+		getAmpEnFromFit(pwFit2,pwI0,round(pwFit2[2]),tval,ovpVal,pwMolAdj)
+		organizeTensorWaves(round(alpha),fit)
 	else
 		alphaModelPlotting(fit,allExpEnergy,allExpSpec,allStepEnergy,allDFTSteps,results,totalNEXAFS,nAlpha,nPeaks,refitpWave,tval,ovpVal,thetaList,d,NEXAFStype)		
 		getAmpEnFromFit(refitpWave,pWave1D,refitpWave[2],tval,ovpVal,pwMolAdj)
@@ -1634,24 +1648,27 @@ Function getAmpEnFromFit(pwFit,pwOri,alpha,tval,ovpVal,pwMolAdj,[d])
 	Variable i,j=0,k=0
 	Variable i0dIF = pwFit[1]
 	Make/o/n=(nPeaks) iniAmps,fitAmps,iniEns,fitEns,iniTheta,fitTheta
-	Make/O/N=(nPeaks) ampChange,enChange,modThetaChange,tdmThetaChange	
-	Make/O/N=(nPeaks) iniTDMTheta,fitTDMTheta
+	Make/O/N=(nPeaks) ampChange,enChange,modThetaChange,tdmThetaChange,widChange	
+	Make/O/N=(nPeaks) iniTDMTheta,fitTDMTheta,iniWidth,fitWidth
 	//Get the fitted and original Peak Amplitudes,Widths, and Positions
 	for(i=pwOri[0] + 4;i<11*nPeaks+pwOri[0]+4;i+=11)
 		fitEns[j]    = pwFit[i]
 		fitAmps[j]   = pwFit[i+2]
 		fitTheta[j]  = pwFit[i+10]
 		fitTDMTheta[j] = atan(pwMolAdj[i+8]/pwMolAdj[i+6])*(180/pi)
+		fitWidth[j] = pwFit[i+1]*2.355
 		
 		iniEns[j]   = pwOri[i]
-		iniAmps[j]  = pwOri[i+2]//*3.61
+		iniAmps[j]  = pwOri[i+2]
 		iniTheta[j] = pwOri[i+10]
 		iniTDMTheta[j] = atan(pwOri[i+8]/pwOri[i+6])*(180/pi)
-		Variable wid = pwFit[i+1]*2
+		iniWidth[j] = pwOri[i+1]*2.355
+		Variable wid = pwFit[i+1]*2.355
 		enChange[j]    = (fitEns[j]   - iniEns[j])/(wid)	//Relative energy change
 		modThetaChange[j] = fitTheta[j] - iniTheta[j]
 		ampChange[j]   = log(fitAmps[j]/iniAmps[j])//Include i0 into iniAmps to fix this ratio!
 		tdmThetaChange[j] =  fitTDMTheta[j] - iniTDMTheta[j] 
+		widChange[j] = fitWidth[j] - iniWidth[j]
 		j+=1
 	endfor
 	
@@ -1827,6 +1844,7 @@ Function popAlphaPWave(xw,E1,E2,ew,pw,nSpec,tl,alpha,i0,os,ovp)
 	Variable alphaMin = V_min
 	WaveStats/Q sigmas
 	Variable avgError = V_avg
+	print avgAlpha
 	//Display the results of the alpha fit
 //	String gName = "alphaFit_OS" + num2str(os) + "_OVP" + num2str(ovp)
 //	DoWindow $gName
@@ -2123,15 +2141,17 @@ Function Gstep(x,x0,width)
 	return 1/2 + 1/2*erf((x-x0)/(width/c))
 end
 
-Function/S makeHoldString(holdAmps,holdWidths,holdPos,pWave1D,holdModTheta)
-	Variable holdAmps,holdWidths,holdPos,holdModTheta
+Function/S makeHoldString(holdAmps,holdWidths,holdPos,pWave1D,holdModTheta,holdAlpha)
+	Variable holdAmps,holdWidths,holdPos,holdModTheta,holdAlpha
 	Wave pWave1D
-	Variable hold
 	
 	Variable i,nPeaks = (numpnts(pwave1d)-pwave1d[0]-4)/11
 	//Make Hold String for fit. Open amplitudes, hold position and width constant
-	String H = "1111"		//H1 = Number of atoms, i0, alpha, phi
-	
+	if(holdAlpha)
+		String H = "1111"		//H1 = Number of atoms, i0, alpha, phi
+	else
+		H = "1101"
+	endif
 	for(i=1;i<=pWave1D[0];i+=1)
 		H +="1" //For Ionization Potentials from DFT. Used to build the Step Edge. Hold them constant.
 	endfor
@@ -2255,10 +2275,10 @@ Function/WAVE makeConstraintAlphaFit(pw,Emax)
 	return constraintAlpha
 End
 
-Function/WAVE makeEpsiltonWave(pWave1D,holdAmps,holdWidths,holdPos,holdModTheta)
+Function/WAVE makeEpsiltonWave(pWave1D,holdAmps,holdWidths,holdPos,holdModTheta,holdAlpha)
 	
 	Wave pWave1D
-	Variable holdAmps,holdWidths,holdPos,holdModTheta
+	Variable holdAmps,holdWidths,holdPos,holdModTheta,holdAlpha
 	
 	Variable i,nPeaks = (numpnts(pwave1d)-pwave1d[0]-4)/11
 	//Set up values for epsilon wave
@@ -2270,7 +2290,11 @@ Function/WAVE makeEpsiltonWave(pWave1D,holdAmps,holdWidths,holdPos,holdModTheta)
 	Variable epsMT   = 1e-2
 	eps[0] = 0
 	eps[1] = 0
-	eps[2] = 0	
+	if(holdAlpha)
+		eps[2] = 0	
+	else
+		eps[2] = 1e-2	
+	endif
 	eps[3] = 0
 	
 	for(i=4;i<pWave1D[0] + 4;i+=1)
@@ -2451,21 +2475,18 @@ Function/WAVE makeEpsiltonWaveI0Fit(pw)
 	return eps
 End
 
-Function/WAVE makeConstraintWave(holdAmps,holdWidths,holdPos,nPeaks,pWave1D,whichConstraint)
+Function/WAVE makeConstraintWave(holdAmps,holdWidths,holdPos,nPeaks,pWave1D,holdModTheta)
 	
-	Variable holdAmps,holdWidths,holdPos
-	Variable nPeaks,whichConstraint
+	Variable holdAmps,holdWidths,holdPos,holdModTheta
+	Variable nPeaks
 	Wave pWave1D
 	
 	Variable i,j=0,pos,pLow,pHigh,wid,n=1
 	//Variable openParams = holdAmps + holdWidths + holdPos
-	String constraintWName = "constraints" + num2str(whichConstraint)
-	Make/O/T/N=(nPeaks) $constraintWName
-	Wave/T constraints = $constraintWName
+	Make/O/T/N=(nPeaks) constraints
 	
 	String lc0,lc1,lc2,lc3,hc0,lowConstraint2,lowConstraint3
 	
-	if(whichConstraint == 1)
 		if(!holdPos && !holdWidths && !holdAmps)
 			Redimension/N=(4*nPeaks) constraints//(5*nPeaks) constraints
 			for(i=4 + pWave1D[0];i<11*nPeaks + 4 + pWave1D[0];i+=11)
@@ -2560,7 +2581,6 @@ Function/WAVE makeConstraintWave(holdAmps,holdWidths,holdPos,nPeaks,pWave1D,whic
 		elseif(holdAmps && holdWidths && holdAmps) 
 			print "Constraint wave not built due to all parameters being held constant"
 		endif		
-	endif
 	
 	return constraints
 End
