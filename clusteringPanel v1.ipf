@@ -416,7 +416,7 @@ End
 
 Function runAlgorithmButton(ba) : ButtonControl
 	STRUCT WMButtonAction &ba
-
+	
 	switch( ba.eventCode )
 		case 2: // mouse up
 			String startFolder = GetdataFolder(1)
@@ -591,19 +591,24 @@ Function runAlgorithmButton(ba) : ButtonControl
 			Variable paramSpaceExplore = V_Value
 			
 			if(!paramSpaceExplore)
+				Variable timeRefNum = StartMSTimer
 				filterDFT(atomName,nAtoms,osThre,ovpThre,rotSym,LUMOwave,erange=erange,broad1=broad1,broad2=broad2,Eini=Eini,Efin=Efin,gRes=gRes,buildSym=bSym,corrWave=Ecorr,realign=realign,thx=thx,thy=thy,thz=thz,rotOrder=rotOrder,modelAlpha=modAlpha,IPwave=IP,expSpecName=expSpecName,expEnergyName=expEnergyName,expFolderPath=expFolderPath,mol=mol,alpha=alpha,i0=i0,phi=phi,fit=fitExpNEXAFS,rigidShift=rigidShift,thetaList=thetaList,NEXAFStype=spectraType,justModel=justModel,justFit=justFit,anchorStep1=anchorStep1,anchorStep2=anchorStep2,anchorExp1=anchorExp1,anchorExp2=anchorExp2,stepWid1=stepWid1,stepWid2=stepWid2,stepE1=stepE1,stepE2=stepE2,holdAmps=holdAmps,holdWidths=holdWidths,holdPos=holdPos,refinement=refine,maskEnergy1=maskEnergy1,maskEnergy2=maskEnergy2,pkToRefine=pkToRefine,refitPWave=refitPWave,holdTensorElems=holdTensorElems)
 				SetDataFolder $startFolder
+				Variable tFFEnd =stopMSTimer(timeRefNum)/(1E6)
+				print "All operations completed."
+				print "The process took " +num2str(tFFEnd) + " seconds."
+				NVAR compTime = root:compTime
+				compTime = tFFEnd
+				return 0
 				break
 			else
 				Wave osWave  = $GetOSTPath()
 				Wave ovpWave = $GetOVPTPath()	
 				seqThresholds(atomName,nAtoms,osWave,ovpWave,rotSym,LUMOwave,erange=erange,broad1=broad1,broad2=broad2,Eini=Eini,Efin=Efin,gRes=gRes,buildSym=bSym,corrWave=Ecorr,realign=realign,thx=thx,thy=thy,thz=thz,rotOrder=rotOrder,modelAlpha=modAlpha,IPwave=IP,expSpecName=expSpecName,expEnergyName=expEnergyName,expFolderPath=expFolderPath,mol=mol,alpha=alpha,i0=i0,phi=phi,fit=fitExpNEXAFS,rigidShift=rigidShift,thetaList=thetaList,NEXAFStype=spectraType,justModel=justModel,justFit=justFit,anchorStep1=anchorStep1,anchorStep2=anchorStep2,anchorExp1=anchorExp1,anchorExp2=anchorExp2,stepWid1=stepWid1,stepWid2=stepWid2,stepE1=stepE1,stepE2=stepE2,holdAmps=holdAmps,holdWidths=holdWidths,holdPos=holdPos,refinement=refine,maskEnergy1=maskEnergy1,maskEnergy2=maskEnergy2,pkToRefine=pkToRefine,refitPWave=refitPWave,holdTensorElems=holdTensorElems)				
-			endif
+			endif			
 			case -1: // control being killed
 				break
 	endswitch
-
-	return 0
 End
 
 Function supportButton(ba) : ButtonControl
@@ -1621,21 +1626,25 @@ Function breakPWaveIntoClusters(pw,mName)
 		String cwOSName  = "cOS_" + num2str(tc) + "_" + mName
 		String cwWiName  = "cWi_" + num2str(tc) + "_" + mName
 		String cwThiName = "cTh_" + num2str(tc) + "_" + mName
-		Wave en = $cweName,os = $cwOSName,wi = $cwWiName,th = $cwThiName
+		String cwMOName  = "cMO_" + num2str(tc) + "_" + mName
+		String cwATName  = "cAT_" + num2str(tc) + "_" + mName
+		Wave en = $cweName,os = $cwOSName,wi = $cwWiName,th = $cwThiName,mo = $cwMOName,at = $cwATName
 		if((tc > numpnts(clusterList)-1) || i==0)//This is a new cluster
 			Redimension/N=(tc+1) clusterList
 			clusterList[tc] = 1
-			Make/O/N=1 $cweName,$cwOSName,$cwWiName,$cwThiName
-			Wave en = $cweName,os = $cwOSName,wi = $cwWiName,th = $cwThiName
+			Make/O/N=1 $cweName,$cwOSName,$cwWiName,$cwThiName,$cwMOName,$cwATName
+			Wave en = $cweName,os = $cwOSName,wi = $cwWiName,th = $cwThiName,mo = $cwMOName,at = $cwATName
 		else
 			clusterList[tc] += 1	//Update number of transitions in cluster
-			Redimension/N=(clusterList[tc]) $cweName,$cwOSName,$cwWiName,$cwThiName
+			Redimension/N=(clusterList[tc]) $cweName,$cwOSName,$cwWiName,$cwThiName,$cwMOName,$cwATName
 		endif
 		
-		en[clusterList[tc]-1] = pw[i][0]	//Populate energy wave
-		os[clusterList[tc]-1] = pw[i][1]	
-		wi[clusterList[tc]-1] = pw[i][2]	
-		th[clusterList[tc]-1] = pw[i][6]				
+		en[clusterList[tc]-1] = pw[i][0]	   //Populate energy wave
+		os[clusterList[tc]-1] = pw[i][1]	   //Populate os wave	
+		wi[clusterList[tc]-1] = pw[i][2]	   //Populate width wave	
+		th[clusterList[tc]-1] = pw[i][6] 	//Populate th wave	
+		mo[clusterList[tc]-1] = pw[i][15]	//Populate MO wave	
+		at[clusterList[tc]-1] = pw[i][14]	//Populate atom wave				
 	endfor
 End
 
@@ -1681,10 +1690,10 @@ Function tdmInfo(mName,OS,OVP,alpha,molName,[corr,tr,cl])
 	Variable mo   = pw[tr][15] //Transition MO
 	Variable cltr = pw[tr][16] //To what cluster does this transition belong to?
 	SetDataFolder $fFolder	//Need to fetch the cluster parameter wave
-	Wave pwI0Fit
-	Wave pw2dFin = make2Dfrom1DPwave(pwI0Fit)
+	Wave pwI0Fit,pwFinal
+	Wave pw2dFin = make2Dfrom1DPwave(pwFinal)
 	Variable i0 = pwI0Fit[1]
-	Wave pw2dini = pw2dOriginal
+	Wave pw2dini = pw2DFit//pw2dOriginal
 	//Information about the clusters
 	Variable nClusters = DimSize(pw2dini,0)
 	if(cl >= nClusters)
@@ -1951,16 +1960,6 @@ Function tdmInfo(mName,OS,OVP,alpha,molName,[corr,tr,cl])
 		endif 
 	endif
 	
-	//Plot the percent difference between the summed peak and the merged peak for each cluster
-	DoWindow perDiffPlot
-	if(!V_Flag)
-		Display/K=1/N=perDiffPlot percentDiff
-		ModifyGraph/W=perDiffPlot mode=4,marker=19,grid=2,mirror=1,fStyle=1,fSize=12
-		Label/W=perDiffPlot left "% Difference"
-		Label/W=perDiffPlot bottom "Cluster ID"
-		SetAxis/W=perDiffPlot left 0,*
-	endif
-	
 	//Plot the summed Peak and the clustered peak along the corresponding PCC
 	DoWindow sumVSCluster
 	if(!V_Flag)
@@ -1985,17 +1984,18 @@ Function tdmInfo(mName,OS,OVP,alpha,molName,[corr,tr,cl])
 	Wave enw = $enn,osw = $osn,th = $thn
 	WaveStats/Q enw
 	if(!V_Flag)
-		Display/N=tdmOSPlot/K=1 osw vs enw
-		NewFreeAxis/L Theta
-		AppendToGraph/W=tdmOSPlot/L=Theta th vs enw 
-		ModifyGraph/W=tdmOSPlot grid=2,mirror=1,nticks=10,minor=1,fStyle=1
+		Display/N=tdmOSPlot/W=(0,0,400,250)/K=1 osw vs enw
+		//NewFreeAxis/L Theta
+		AppendToGraph/W=tdmOSPlot/R th vs enw 
+		ModifyGraph/W=tdmOSPlot grid=2,nticks=10,minor=1,fStyle=1
 		Label/W=tdmOSPlot left  "ƒ[A.U.]\U"
-		Label/W=tdmOSPlot Theta "θ[°]\U"
+		Label/W=tdmOSPlot right "θ[°]\U"
 		Label/W=tdmOSPlot bottom "Transition Energy [eV]"
-		ModifyGraph/W=tdmOSPlot lblPosMode(left)=1,lblPosMode(Theta)=1,axisEnab(left)={0,0.46},axisEnab(Theta)={0.5,1},freePos(Theta)=0,mirror=1,nticks=10,minor=1,fStyle=1,grid=2
-		ModifyGraph/W=tdmOSPlot mode($osn)=1,mode($thn)=3,marker($thn)=19,rgb($thn)=(0,0,0),lsize($osn)=1.5
+		ModifyGraph/W=tdmOSPlot lblPosMode(left)=1,nticks=10,fStyle=1,grid=2,grid(left)=0,grid(bottom)=0,nticks(bottom)=3,fSize=12
+		ModifyGraph/W=tdmOSPlot mode($osn)=1,mode($thn)=3,marker($thn)=19,rgb($thn)=(0,0,0),lsize($osn)=1.5,mirror(bottom)=1
 		SetAxis/W=tdmOSPlot bottom V_min,V_max
-		SetAxis/W=tdmOSPlot Theta  0,90
+		SetAxis/W=tdmOSPlot right  0,90
+		SetAxis left 0,*
 		Legend/W=tdmOSPlot/C/N=text0/J/F=0/D=1.2/A=RC "\\JCCluster "+num2str(cl)+"\r\\s("+osn+") OS\r\\s("+thn+") θ"
 	else
 		String tlist = TraceNameList("tdmOSPlot",";",1)
@@ -2005,13 +2005,14 @@ Function tdmInfo(mName,OS,OVP,alpha,molName,[corr,tr,cl])
 			RemoveFromGraph/W=tdmOSPlot $cTrace
 		endfor
 		AppendToGraph/W=tdmOSPlot osw vs enw 
-		AppendToGraph/W=tdmOSPlot/L=Theta th vs enw 
-		ModifyGraph/W=tdmOSPlot lblPosMode(left)=1,lblPosMode(Theta)=1,axisEnab(left)={0,0.46},axisEnab(Theta)={0.5,1},freePos(Theta)=0,mirror=1,nticks=10,minor=1,fStyle=1,grid=2
-		ModifyGraph/W=tdmOSPlot mode($osn)=1,mode($thn)=3,marker($thn)=19,rgb($thn)=(0,0,0),lsize($osn)=1.5
+		AppendToGraph/W=tdmOSPlot/R th vs enw 
+		ModifyGraph/W=tdmOSPlot lblPosMode(left)=1,nticks=10,fStyle=1,grid=2,grid(left)=0,grid(bottom)=0,nticks(bottom)=3,fSize=12
+		ModifyGraph/W=tdmOSPlot mode($osn)=1,mode($thn)=3,marker($thn)=19,rgb($thn)=(0,0,0),lsize($osn)=1.5,mirror(bottom)=1
 		SetAxis/W=tdmOSPlot bottom V_min,V_max
-		SetAxis/W=tdmOSPlot Theta  0,90
+		SetAxis left 0,*
+		SetAxis/W=tdmOSPlot right  0,90
 		Label/W=tdmOSPlot left  "ƒ[A.U.]\U"
-		Label/W=tdmOSPlot Theta "θ[°]\U"
+		Label/W=tdmOSPlot right "θ[°]\U"
 		Label/W=tdmOSPlot bottom "Transition Energy [eV]"
 		Legend/W=tdmOSPlot/C/N=text0/J/F=0/D=1.2/A=RC "\\JCCluster "+num2str(cl)+"\r\\s("+osn+") OS\r\\s("+thn+") θ"	
 	endif
@@ -2292,11 +2293,11 @@ Function dispBICandRCS(RCS,BIC,nPeaks,pDiff,row,OVP,OS)
 		NewFreeAxis/L nPeaksAxis
 		NewFreeAxis/R pDiffAxis
 		SetAxis left minRCS,maxRCS
-		SetAxis right minBIC,maxBIC
+		SetAxis right 350,maxBIC
 		AppendToGraph/W=BICvsRCSPlot/L=nPeaksAxis nPeaks[row][*] VS OVP
 		AppendToGraph/W=BICvsRCSPlot/R=pDiffAxis pDiff[row][*] VS OVP
-		SetAxis nPeaksAxis 0,maxnPeaks
-		SetAxis pDiffAxis 0,maxpDiff
+		SetAxis nPeaksAxis 12,maxnPeaks
+		SetAxis pDiffAxis 2,maxpDiff
 		ModifyGraph mode=4,marker=19,rgb(nPeaks)=(1,9611,39321),rgb(pDiff)=(19729,1,39321)
 		ModifyGraph axisEnab(nPeaksAxis)={0,0.49},axisEnab(pDiffAxis)={0,0.49},axisEnab(left)={0.51,1},axisEnab(right)={0.51,1},freePos(nPeaksAxis)=0,freePos(pDiffAxis)=0
 		Label/W=BICvsRCSPlot right "BIC"
@@ -2319,11 +2320,11 @@ Function dispBICandRCS(RCS,BIC,nPeaks,pDiff,row,OVP,OS)
 		ModifyGraph mode=4,marker=19,rgb($name2)=(0,0,0)
 		ModifyGraph mirror(bottom)=1,minor(bottom)=1,fStyle=1
 		SetAxis left 0,maxRCS
-		SetAxis right 0,maxBIC
+		SetAxis right 350,maxBIC
 		AppendToGraph/W=BICvsRCSPlot/L=nPeaksAxis nPeaks[row][*] VS OVP
 		AppendToGraph/W=BICvsRCSPlot/R=pDiffAxis pDiff[row][*] VS OVP
-		SetAxis nPeaksAxis 0,maxnPeaks
-		SetAxis pDiffAxis 0,maxpDiff
+		SetAxis nPeaksAxis 12,maxnPeaks
+		SetAxis pDiffAxis 2,maxpDiff
 		ModifyGraph mode=4,marker=19,rgb(nPeaks)=(1,9611,39321),rgb(pDiff)=(19729,1,39321)
 		ModifyGraph axisEnab(nPeaksAxis)={0,0.49},axisEnab(pDiffAxis)={0,0.49},axisEnab(left)={0.51,1},axisEnab(right)={0.51,1},freePos(nPeaksAxis)=0,freePos(pDiffAxis)=0
 		Label/W=BICvsRCSPlot right "BIC"
@@ -2380,12 +2381,12 @@ Function DFTPlotter_Slider(sa) : SliderControl
 			if( sa.eventCode & 1 ) // value set
 				Variable curval = sa.curval
 			endif
-			Wave OVP = root:OVP
-			Wave OS = root:OS
+			Wave OVP    = $GetOVPTPath()
+			Wave OS     = $GetOSTPath()
 			ControlInfo/W=ClusterResultPlotter slider0
-			Variable osVal = OS[V_Value]
+		   Variable osVal = OS[V_Value]//BinarySearch(OS,V_value)// OS[V_Value]
 			ControlInfo/W=ClusterResultPlotter slider1
-			Variable ovpVal = OVP[V_Value]
+			Variable ovpVal = OVP[V_Value]//BinarySearch(OVP,V_value)//OVP[V_Value]
 			ControlInfo/W=ClusteringAlgorithm mol
 			String molName = S_Value
 			ControlInfo/W=ClusteringAlgorithm thetaList
@@ -2401,6 +2402,23 @@ Function DFTPlotter_Slider(sa) : SliderControl
 	return 0
 End
 
+Function makeClusterPeaks(pw)
+
+	Wave pw
+	Variable nPeaks = DimSize(pw,0),i,pos,wid,amp
+	for(i=0;i<nPeaks;i+=1)
+		String pkName = "pk_" + num2str(i)
+		Make/O/N=2000 $pkName
+		Wave w = $pkName
+		SetScale/i x,280,360,w
+		pos = pw[i][0]
+		wid = pw[i][2]
+		amp = pw[i][1]
+		w = amp*gauss(x,pos,wid)
+	endfor
+
+End
+
 Function plotRawDFTvsClusterDFT(osVal,ovpVal,mol)
 	Variable osVal,ovpVal
 	String mol
@@ -2408,8 +2426,14 @@ Function plotRawDFTvsClusterDFT(osVal,ovpVal,mol)
 	String iniFolder = "root:Packages:DFTClustering:PolarAngles_"+mol+":"//GetDataFolder(1)
 	String ampFolder = iniFolder + "TransitionFiltering_" + replaceString(".",num2str(osVal),"p")+"OS_" +replaceString(".",num2str(ovpVal),"p")+"OVP:AmplitudeFitting:ALL:"
 	SetDataFolder $ampFolder
-	Wave Total_Specf0,fitSpecAll,mergedOriAll,res,OS,energy,En,percentDiff_All
-	Variable pDiff = percentDiff_All[0]
+	Wave Total_Specf0,fitSpecAll,mergedOriAll,res,OS,energy,En,percentDiff_All,PW2DOriginal
+	makeClusterPeaks(PW2DOriginal)//Make the cluster peaks
+	//Make list of clustered peaks
+	String clPeaks = WaveList("pk_*",";","")
+	Variable pDiff = percentDiff_All[0],i,k,j=0,corr=0,num=0,den=0,tol=1e-7
+	Duplicate/O  res,res2
+	res2 = res/Total_Specf0
+	pDiff = roundToSigDig(pDiff, 3)
 	DoWindow RawDFTvsClusterDFT
 	if(!V_Flag)
 		Display/N=RawDFTvsClusterDFT/W=(0,0,400,500)/K=1 Total_Specf0,fitSpecAll,mergedOriAll vs energy
@@ -2417,41 +2441,148 @@ Function plotRawDFTvsClusterDFT(osVal,ovpVal,mol)
 		Label/W=RawDFTvsClusterDFT bottom "Transition Energy[eV]"
 		NewFreeAxis/W=RawDFTvsClusterDFT/L residual
 		NewFreeAxis/W=RawDFTvsClusterDFT/L oss
-		AppendToGraph/W=RawDFTvsClusterDFT/L=residual res
-		AppendToGraph/W=RawDFTvsClusterDFT/L=oss OS vs En
-		ModifyGraph/W=RawDFTvsClusterDFT axisEnab(oss)={0,0.2},axisEnab(left)={0.25,0.75},axisEnab(residual)={0.8,1},freePos(residual)=0, freePos(oss)=0,lblPosMode=1
-		ModifyGraph/W=RawDFTvsClusterDFT lsize=1.5,lstyle(fitSpecAll)=3,rgb(fitSpecAll)=(0,0,0),rgb(res)=(52428,34958,1),rgb(mergedOriAll)=(2,39321,1),grid=2,mirror=1,nticks=5,minor=1,fStyle=1,lsize(fitSpecAll)= 2.5
-		ModifyGraph/W=RawDFTvsClusterDFT mode(OS)=1,rgb(OS)=(1,9611,39321),mirror(bottom)=2,log(oss)=1
-		WaveStats/Q res
-		SetAxis/W=RawDFTvsClusterDFT residual V_min,V_max
-		Label/W=RawDFTvsClusterDFT residual "Residual\\U"
-		WaveStats/Q OS
-		SetAxis/W=RawDFTvsClusterDFT oss 0.001,1
-		Label/W=RawDFTvsClusterDFT oss "OS [a.u.]\\U"
-		Legend/C/N=text0/J/A=RC/X=4.11/Y=-1.88/W=RawDFTvsClusterDFT "OS = " + num2str(osVal) + "% OVP=" + num2str(ovpVal) + "%\r\\s(Total_Specf0) Unfiltered\r\\s(fitSpecAll) Fit\r\\s(mergedOriAll) Merged\r\\s(res) Residual\r% Diff = " + num2str(pDiff) +"%\r\\s(OS) OS"
+		NewFreeAxis/W=RawDFTvsClusterDFT/R oss2
+		AppendToGraph/W=RawDFTvsClusterDFT/L=residual res2
+		//Make waves containing the tdm component values within desired energy range 
+		String aFolder = "TransitionFiltering_"+replaceString(".",num2str(osVal),"p")+"OS_"+replaceString(".",num2str(ovpVal),"p")+"OVP:"//Start folder of current filtering/clustering run
+		String ffFolder = iniFolder + aFolder +"firstFilter:"
+		SetDataFolder $ffFolder
+		Wave pw = AllParamsF1Sorted
+		breakPWaveIntoClusters(pw,mol)
+		//Make color wave
+		Wave M_colors = makeColorWave(0.5)
+		Variable nColors = DimSize(M_colors,0)
+		//Make list of waves containing peak parameters for each cluster
+		String enList = WaveList("cEn*"+mol+"",";","")
+		String osList = WaveList("cOS*"+mol+"",";","")
+		String wiList = WaveList("cWi*"+mol+"",";","")
+		Variable nw = ItemsInList(enList)
+		
+		Make/O/N=(nw) osMAX,enMAX
+		//Make the summed peak from all transitions in cluster and append it to the graph
+		for(i=0;i<nw;i+=1)
+			String enn = StringFromList(i,enList)
+			String osn = StringFromList(i,osList)
+			String win = StringFromList(i,wiList)
+			String cln = ampFolder + StringFromList(i,clPeaks)
+			String clnNoPath = StringFromList(i,clPeaks)
+			Wave enw = $enn,osw = $osn,wiw = $win,clp = $cln
+			Variable transInCl = numpnts(enw)
+			//Make the summed peak representative of each cluster
+			String pkName = "sumPk_" + num2str(i)
+			Make/O/N=2000 $pkName=0
+			Wave dSumPk = $pkName
+			SetScale/I x,280,360,dSumPk
+			for(k=0;k<transInCl;k+=1)
+				dSumPk += osw[k] * gauss(x,enw[k],wiw[k])//sqrt(2*Pi) * wiw[k] * osw[k] * gauss(x,enw[k],wiw[k])
+			endfor
+			AppendToGraph/W=RawDFTvsClusterDFT/L=oss2 osw vs enw
+			AppendToGraph/W=RawDFTvsClusterDFT/L=oss dSumPk,clp 
+			ModifyGraph rgb($osn)=(M_colors[j][0],M_colors[j][1],M_colors[j][2],M_colors[j][3]),mode($osn)=1,offset($osn)={corr,0}
+			ModifyGraph rgb($pkName)=(M_colors[j][0],M_colors[j][1],M_colors[j][2],M_colors[j][3]),mode($pkName)=0,offset($pkName)={corr,0}
+			ModifyGraph rgb($clnNoPath)=(M_colors[j][0],M_colors[j][1],M_colors[j][2],M_colors[j][3]),mode($clnNoPath)=0,lstyle($clnNoPath)=3,offset($clnNoPath)={corr,0}
+			WaveStats/Q osw
+			osMAX[i] = V_max
+			enMAX[i] = enw[V_maxloc]
+			j+=1
+			if(j>=nColors)
+				j = 0
+			endif
+		endfor
+		
+		AppendToGraph/W=RawDFTvsClusterDFT/L=oss2 osMAX vs enMAX
+		ModifyGraph mode(osMAX)=1,rgb(osMAX)=(0,0,0) ,rgb(mergedOriAll)=(3,52428,1)
+		ModifyGraph/W=RawDFTvsClusterDFT axisEnab(oss)={0,0.2},axisEnab(oss2)={0,0.2},axisEnab(left)={0.25,0.75},axisEnab(residual)={0.8,1},freePos(residual)=0, freePos(oss)=0,freePos(oss2)=0,lblPosMode=1
+		ModifyGraph/W=RawDFTvsClusterDFT lsize=1.5,lstyle(fitSpecAll)=3,rgb(fitSpecAll)=(0,0,0),rgb(res2)=(52428,34958,1),grid=2,mirror=1,nticks=5,minor=1,fStyle=1,lsize(fitSpecAll)= 2.5
+		ModifyGraph/W=RawDFTvsClusterDFT mirror(bottom)=2
+		WaveStats/Q res2
+		SetAxis/W=RawDFTvsClusterDFT residual -1,1
+		SetAxis bottom 283,310
+		Label/W=RawDFTvsClusterDFT residual "Residual[%]\\U"
+		Label/W=RawDFTvsClusterDFT oss2 "ƒ\\U"
+		ModifyGraph lblMargin(residual)=10,lblMargin(oss)=10,lblMargin(oss2)=10,lblMargin(left)=10,lblMargin(bottom)=5
+		ModifyGraph standoff(oss)=0,standoff(oss2)=0,minor(oss)=0,minor(oss2)=0
+		SetAxis/W=RawDFTvsClusterDFT oss 0,0.2
+		SetAxis/W=RawDFTvsClusterDFT oss2 0,0.05
+		ModifyGraph nticks(residual)=2,nticks(oss)=2,nticks(oss2)=3,nticks(left)=3
+		Label/W=RawDFTvsClusterDFT oss "BB [a.u.]\\U"
+		Legend/C/N=text0/J/A=RC/X=4.11/Y=20.00/W=RawDFTvsClusterDFT "OS = " + num2str(osVal) + "% OVP=" + num2str(ovpVal) + "%\r\\s(Total_Specf0) DFT\r\\s(fitSpecAll) Refined\r\\s(mergedOriAll) Unrefined\r\\s(res2) Residual\r% Diff = " + num2str(pDiff) +"%\r\\s(osMax) OS"
 	else
 		DoWindow/F RawDFTvsClusterDFT
 		String tlist = TraceNameList("RawDFTvsClusterDFT",";",1)
-		Variable n = ItemsInList(tlist),i
+		Variable n = ItemsInList(tlist)
 		for(i=0;i<n;i+=1)
 			String cTrace = StringFromList(i,tlist)
 			RemoveFromGraph/W=RawDFTvsClusterDFT $cTrace
 		endfor
 		AppendToGraph/W=RawDFTvsClusterDFT Total_Specf0,fitSpecAll,mergedOriAll vs energy		
-		AppendToGraph/W=RawDFTvsClusterDFT/L=residual res
-		AppendToGraph/W=RawDFTvsClusterDFT/L=oss OS vs En
-		ModifyGraph/W=RawDFTvsClusterDFT lsize=1.5,lstyle(fitSpecAll)=3,rgb(fitSpecAll)=(0,0,0),rgb(res)=(52428,34958,1),rgb(mergedOriAll)=(2,39321,1),grid=2,mirror=1,nticks=5,minor=1,fStyle=1,lsize(fitSpecAll)= 2.5
-		ModifyGraph/W=RawDFTvsClusterDFT mode(OS)=1,rgb(OS)=(1,9611,39321),mirror(bottom)=2,log(oss)=1
-		ModifyGraph/W=RawDFTvsClusterDFT axisEnab(oss)={0,0.2},axisEnab(left)={0.25,0.75},axisEnab(residual)={0.8,1},freePos(residual)=0, freePos(oss)=0,lblPosMode=1		
-		WaveStats/Q res
-		SetAxis/W=RawDFTvsClusterDFT residual V_min,V_max
-		Label/W=RawDFTvsClusterDFT residual "Residual\\U"
+		AppendToGraph/W=RawDFTvsClusterDFT/L=residual res2
+		ModifyGraph/W=RawDFTvsClusterDFT lsize=1.5,lstyle(fitSpecAll)=3,rgb(fitSpecAll)=(0,0,0),rgb(res2)=(52428,34958,1),grid=2,mirror=1,nticks=5,minor=1,fStyle=1,lsize(fitSpecAll)= 2.5
+		ModifyGraph/W=RawDFTvsClusterDFT mirror(bottom)=2,rgb(mergedOriAll)=(3,52428,1)
+		ModifyGraph/W=RawDFTvsClusterDFT axisEnab(oss)={0,0.2},axisEnab(oss2)={0,0.2},axisEnab(left)={0.25,0.75},axisEnab(residual)={0.8,1},freePos(residual)=0, freePos(oss)=0,freePos(oss2)=0,lblPosMode=1		
+		WaveStats/Q res2
+		SetAxis/W=RawDFTvsClusterDFT residual -1,1
+		Label/W=RawDFTvsClusterDFT residual "Residual[%]\\U"
 		WaveStats/Q OS
-		SetAxis/W=RawDFTvsClusterDFT oss 0.001,1
-		Label/W=RawDFTvsClusterDFT oss "OS [a.u.]\\U"
+		SetAxis/W=RawDFTvsClusterDFT oss 0,0.2
+		SetAxis/W=RawDFTvsClusterDFT oss2 0,0.05
+		//Make waves containing the tdm component values within desired energy range 
+		aFolder = "TransitionFiltering_"+replaceString(".",num2str(osVal),"p")+"OS_"+replaceString(".",num2str(ovpVal),"p")+"OVP:"//Start folder of current filtering/clustering run
+		ffFolder = iniFolder + aFolder +"firstFilter:"
+		SetDataFolder $ffFolder
+		Wave pw = AllParamsF1Sorted
+		breakPWaveIntoClusters(pw,mol)
+		//Make color wave
+		Wave M_colors = makeColorWave(0.5)
+		nColors = DimSize(M_colors,0)
+		//Make list of waves containing peak parameters for each cluster
+		enList = WaveList("cEn*"+mol+"",";","")
+		osList = WaveList("cOS*"+mol+"",";","")
+		wiList = WaveList("cWi*"+mol+"",";","")
+		nw = ItemsInList(enList)
+
+		Make/O/N=(nw) osMAX,enMAX
+		for(i=0;i<nw;i+=1)
+			enn = StringFromList(i,enList)
+			osn = StringFromList(i,osList)
+			win = StringFromList(i,wiList)
+			cln = ampFolder + StringFromList(i,clPeaks)
+			clnNoPath = StringFromList(i,clPeaks)
+			Wave enw = $enn,osw = $osn,wiw = $win,clp = $cln
+			transInCl = numpnts(enw)
+			//Make the summed peak representative of each cluster
+			pkName = "sumPk_" + num2str(i)
+			Make/O/N=2000 $pkName=0
+			Wave dSumPk = $pkName
+			SetScale/I x,280,360,dSumPk
+			for(k=0;k<transInCl;k+=1)
+				dSumPk += osw[k] * gauss(x,enw[k],wiw[k])//sqrt(2*Pi) * wiw[k] * osw[k] * gauss(x,enw[k],wiw[k])
+			endfor
+			AppendToGraph/W=RawDFTvsClusterDFT/L=oss2  osw vs enw
+			AppendToGraph/W=RawDFTvsClusterDFT/L=oss  dSumPk ,clp
+			ModifyGraph rgb($osn)=(M_colors[j][0],M_colors[j][1],M_colors[j][2],M_colors[j][3]),mode($osn)=1,offset($osn)={corr,0}
+			ModifyGraph rgb($pkName)=(M_colors[j][0],M_colors[j][1],M_colors[j][2],M_colors[j][3]),mode($pkName)=0,offset($pkName)={corr,0}
+			ModifyGraph rgb($clnNoPath)=(M_colors[j][0],M_colors[j][1],M_colors[j][2],M_colors[j][3]),mode($clnNoPath)=0,lstyle($clnNoPath)=3,offset($clnNoPath)={corr,0}
+			WaveStats/Q osw
+			osMAX[i] = V_max
+			enMAX[i] = enw[V_maxloc]
+			j+=1
+			if(j>=nColors)
+				j = 0
+			endif
+		endfor
+		AppendToGraph/W=RawDFTvsClusterDFT/L=oss2 osMAX vs enMAX
+		ModifyGraph mode(osMAX)=1,rgb(osMAX)=(0,0,0) 
+		ModifyGraph/W=RawDFTvsClusterDFT lsize=1.5,lstyle(fitSpecAll)=3,rgb(fitSpecAll)=(0,0,0),rgb(res2)=(52428,34958,1),grid=2,mirror=1,nticks=5,minor=1,fStyle=1,lsize(fitSpecAll)= 2.5
+		SetAxis bottom 283,310
+		ModifyGraph lblMargin(residual)=10,lblMargin(oss)=10,lblMargin(oss2)=10,lblMargin(left)=10,lblMargin(bottom)=5
+		ModifyGraph standoff(oss)=0,standoff(oss2)=0,minor(oss)=0,minor(oss2)=0
+		Label/W=RawDFTvsClusterDFT oss "BB [a.u.]\\U"
 		Label/W=RawDFTvsClusterDFT left "Transition Intensity [a.u.]\\U"
 		Label/W=RawDFTvsClusterDFT bottom "Transition Energy[eV]"
-		Legend/C/N=text0/J/A=RC/W=RawDFTvsClusterDFT "OS = " + num2str(osVal) + "% OVP=" + num2str(ovpVal) + "%\r\\s(Total_Specf0) Unfiltered\r\\s(fitSpecAll) Fit\r\\s(mergedOriAll) Merged\r\\s(res) Residual\r% Diff = " + num2str(pDiff) +"%\r\\s(OS) OS"
+		Label/W=RawDFTvsClusterDFT oss2 "ƒ\\U"
+		ModifyGraph nticks(residual)=2,nticks(oss)=2,nticks(oss2)=3,nticks(left)=3
+		Legend/C/N=text0/J/A=RC/X=4.11/Y=20.00/W=RawDFTvsClusterDFT "OS = " + num2str(osVal) + "% OVP=" + num2str(ovpVal) + "%\r\\s(Total_Specf0) DFT\r\\s(fitSpecAll) Refined\r\\s(mergedOriAll) Unrefined\r\\s(res2) Residual\r% Diff = " + num2str(pDiff) +"%\r\\s(osMax) OS"
 	endif
 	
 	SetDataFolder $iniFolder
@@ -2480,14 +2611,14 @@ Function plotParamChanges(osVal,ovpVal,alpha,mol)
 		AppendToGraph/W=ParamChangePlot/L=deltaTDM fitTDMTheta,iniTDMTheta//tdmThetaChange
 		AppendToGraph/W=ParamChangePlot/L=widths widChange
 		ModifyGraph mirror=1,minor=1,fStyle=1,fSize=14,lblPosMode(left)=1,lblPosMode(deltaEn)=1,lblPosMode(deltaTh)=1,lblPosMode(deltaTDM)=1
-		ModifyGraph freePos(deltaEn)=0,freePos(deltaTh)=0,freePos(deltaTDM)=0
+		ModifyGraph freePos(deltaEn)=0,freePos(deltaTh)=0,freePos(deltaTDM)=0,zero(widths)=1,zeroThick(widths)=2
 		ModifyGraph mode=4,marker=19,rgb(enChange)=(1,34817,52428),rgb(modThetaChange)=(1,39321,19939),rgb(iniTDMTheta)=(0,0,0),rgb(fitTDMTheta)=(19729,1,39321),rgb(widChange)=(0,2,26214)
 		Label left "log(A\\BF\\M/A\\BI\\M)"
 		Label deltaEn "∆E/FWHM"
 		Label deltaTh "∆θ[°]"
-		Label deltaTDM "Final,Initial[°]"
+		Label deltaTDM "θ[°]"
 		Label bottom "Cluster ID"
-		ModifyGraph mirror=1,fStyle=1,fSize=14,lblPosMode(widths)=1,axisEnab(left)={0,0.19},axisEnab(deltaEn)={0.22,0.39},axisEnab(deltaTh)={0.42,0.59},axisEnab(deltaTDM)={0.62,0.79},axisEnab(widths)={0.81,1},freePos(widths)=0;DelayUpdate
+		ModifyGraph mirror=1,fStyle=1,fSize=14,lblPosMode(widths)=1,axisEnab(left)={0,0.19},axisEnab(deltaEn)={0.22,0.39},axisEnab(deltaTh)={0.42,0.59},axisEnab(deltaTDM)={0.62,0.79},axisEnab(widths)={0.82,1},freePos(widths)=0;DelayUpdate
 		Label widths "∆FWHM"
 		SetAxis deltaEn -1,1
 		SetAxis deltaTh -90,90
@@ -2497,6 +2628,7 @@ Function plotParamChanges(osVal,ovpVal,alpha,mol)
 		SetAxis left -1,1
 		ModifyGraph zero(left)=1,zero(deltaEn)=1,zero(deltaTh)=1,zero(deltaTDM)=1,zeroThick(left)=2,zeroThick(deltaEn)=2,zeroThick(deltaTh)=2,zeroThick(deltaTDM)=2
 		SetAxis widths -1,1
+		Legend/W=ParamChangePlot/C/N=text0/J/A=MC/X=-36.00/Y=16.00 "\\s(fitTDMTheta) DFT\r\\s(iniTDMTheta) EXP"
 	else
 		DoWindow/F ParamChangePlot
 		String tlist = TraceNameList("ParamChangePlot",";",1)
@@ -2511,14 +2643,14 @@ Function plotParamChanges(osVal,ovpVal,alpha,mol)
 		AppendToGraph/W=ParamChangePlot/L=deltaTDM fitTDMTheta,iniTDMTheta//tdmThetaChange
 		AppendToGraph/W=ParamChangePlot/L=widths widChange
 		ModifyGraph mirror=1,minor=1,fStyle=1,fSize=14,lblPosMode(left)=1,lblPosMode(deltaEn)=1,lblPosMode(deltaTh)=1,lblPosMode(deltaTDM)=1
-		ModifyGraph freePos(deltaEn)=0,freePos(deltaTh)=0,freePos(deltaTDM)=0
+		ModifyGraph freePos(deltaEn)=0,freePos(deltaTh)=0,freePos(deltaTDM)=0,zero(widths)=1,zeroThick(widths)=2
 		ModifyGraph mode=4,marker=19,rgb(enChange)=(1,34817,52428),rgb(modThetaChange)=(1,39321,19939),rgb(iniTDMTheta)=(0,0,0),rgb(fitTDMTheta)=(19729,1,39321),rgb(widChange)=(0,2,26214)
 		Label left "log(A\\BF\\M/A\\BI\\M)"
 		Label deltaEn "∆E/FWHM"
 		Label deltaTh "∆θ[°]"
-		Label deltaTDM "Final,Initial[°]"
+		Label deltaTDM "θ[°]"
 		Label bottom "Cluster ID"
-		ModifyGraph mirror=1,fStyle=1,fSize=14,lblPosMode(widths)=1,axisEnab(left)={0,0.19},axisEnab(deltaEn)={0.22,0.39},axisEnab(deltaTh)={0.42,0.59},axisEnab(deltaTDM)={0.62,0.79},axisEnab(widths)={0.81,1},freePos(widths)=0;DelayUpdate
+		ModifyGraph mirror=1,fStyle=1,fSize=14,lblPosMode(widths)=1,axisEnab(left)={0,0.19},axisEnab(deltaEn)={0.22,0.39},axisEnab(deltaTh)={0.42,0.59},axisEnab(deltaTDM)={0.62,0.79},axisEnab(widths)={0.82,1},freePos(widths)=0;DelayUpdate
 		Label widths "∆FWHM"
 		SetAxis deltaEn -1,1
 		SetAxis deltaTh -90,90
@@ -2528,6 +2660,7 @@ Function plotParamChanges(osVal,ovpVal,alpha,mol)
 		SetAxis left -1,1
 		ModifyGraph zero(left)=1,zero(deltaEn)=1,zero(deltaTh)=1,zero(deltaTDM)=1,zeroThick(left)=2,zeroThick(deltaEn)=2,zeroThick(deltaTh)=2,zeroThick(deltaTDM)=2
 		SetAxis widths -1,1
+		Legend/W=ParamChangePlot/C/N=text0/J/A=MC/X=-36.00/Y=16.00 "\\s(fitTDMTheta) DFT\r\\s(iniTDMTheta) EXP"
 	endif
 	
 	SetDataFolder $iniFolder
@@ -2541,12 +2674,32 @@ Function plotDFTBBvsEXP(thetaList,osVal,ovpVal,alpha,mol)
 	String iniFolder = "root:Packages:DFTClustering:PolarAngles_"+mol+":"//GetDataFolder(1)
 	String fitFolder = iniFolder + "TransitionFiltering_" + replaceString(".",num2str(osVal),"p")+"OS_" +replaceString(".",num2str(ovpVal),"p")+"OVP:AmplitudeFitting:Alpha_"+ replaceString(".",num2str(alpha),"p")+":TensorMisc:"
 	
-	Variable n = ItemsInList(thetaList),i,pDiff
+	Variable n = ItemsInList(thetaList),i,pDiff,rcsVal,alphaVal
 	SetDataFolder $fitFolder
-	Wave rcs,alphaFit
-	Variable rcsVal = rcs[1]
-	Variable alphaVal = alphaFit[0]
-	Make/O/N=(n) percentDiff
+	print fitFolder
+	//root:Packages:DFTClustering:PolarAngles_CuPc:TransitionFiltering_0p5OS_86OVP:AmplitudeFitting:Alpha_20:TensorMisc:
+	Wave rcs2,alphaFit
+	WaveStats/Q rcs2
+		if(V_minloc == 0)
+			rcsVal = rcs2[0]
+			alphaVal = alphaFit[0]
+		elseif(V_minloc == 1)
+			rcsVal = rcs2[1]
+			alphaVal = alphaFit[1]
+		elseif(V_minloc == 2)
+			rcsVal = rcs2[2]
+			alphaVal = alphaFit[2]
+		elseif(V_minloc == 3)
+			rcsVal = rcs2[3]
+			alphaVal = alphaFit[3]	
+		elseif(V_minloc == 4)
+			rcsVal = rcs2[4]
+			alphaVal = alphaFit[4]
+		elseif(V_minloc == 5)	
+			rcsVal = rcs2[5]
+			alphaVal = alphaFit[5]
+		endif
+	//Make/O/N=(n) percentDiff
 	String fitNXFS = WaveList("fitResult*",";","")
 	String pks = WaveList("pk*"+num2str(2),";","")
 	Variable npks = ItemsInList(pks)
@@ -2555,6 +2708,8 @@ Function plotDFTBBvsEXP(thetaList,osVal,ovpVal,alpha,mol)
 	String expNXFS = WaveList("expSpec*",";","")	
 	String steps = WaveList("dftStep*",";","")
 	Wave step = $StringFromList(0,steps)
+	rcsVal   = roundToSigDig(rcsVal, 3)
+	alphaVal = roundToSigDig(alphaVal, 2)
 	DoWindow ModelvsExpPlot
 	
 	String Rlist = "0;1;39321;65535",Glist = "3204;34817;1;43690",Blist = "13107;52428;1;0"
@@ -2581,12 +2736,12 @@ Function plotDFTBBvsEXP(thetaList,osVal,ovpVal,alpha,mol)
 			AppendToGraph/W=ModelvsExpPlot fitW vs enWave
 			ModifyGraph lstyle($fitName)=3
 			res =(( nxfs - fitW)/nxfs)*100	
-			pDiff = calcPercentDiff(nxfs,fitW)
+			//pDiff = calcPercentDiff(nxfs,fitW)
 			ModifyGraph rgb($expName)=(r,g,b),rgb($fitName)=(r,g,b),lsize($expName)=3,lsize($fitName)=3
 			
 			AppendToGraph/W=ModelvsExpPlot/L=residuals res vs enWave
 			ModifyGraph rgb($resName)=(r,g,b)
-			percentDiff[i] = pDiff
+			//percentDiff[i] = pDiff
 		endfor
 				
 		//Append the DFT step edge onto graph
@@ -2608,22 +2763,22 @@ Function plotDFTBBvsEXP(thetaList,osVal,ovpVal,alpha,mol)
 		Label residuals "Residuals[%]\\U"
 		Label bottom "Transition Energy[eV]"
 		SetAxis bottom 283,320
-		SetAxis residuals -100,100
+		SetAxis residuals -20,20
 		SetAxis peaks *,90000
 		//Make the legend
-		String totalLegend = "θ[°]  EXP  DFT  %Diff\r",legendPortion = "",whichList
+		String totalLegend = "θ[°]  EXP  DFT\r",legendPortion = "",whichList
 		whichList = fitNXFS
 		for(i=0;i<n;i+=1)
 			String theta = StringFromList(i,thetaList)
 			String dftSpec = StringFromList(i,whichList)
 			String expSpec = StringFromList(i,expNXFS)
 			if(i != (n-1))
-				legendPortion += theta + "° \\s('"+ expSpec +"') \\s('" + dftSpec +"') " + num2str(percentDiff[i]) +"\r\n"
+				legendPortion += theta + "° \\s('"+ expSpec +"') \\s('" + dftSpec +"')\r\n"// + num2str(percentDiff[i]) +"\r\n"
 			else
-				legendPortion += theta + "° \\s('"+ expSpec +"') \\s('" + dftSpec +"') " + num2str(percentDiff[i]) 
+				legendPortion += theta + "° \\s('"+ expSpec +"') \\s('" + dftSpec +"')"// + num2str(percentDiff[i]) 
 			endif
 		endfor
-		Legend/C/A=RT/N=text0/J/W=ModelvsExpPlot totalLegend + legendPortion	 + "\r\\JC# of Peaks = "+num2str(npks)+"\rΧ\\S2\\M="+num2str(rcsVal)+"\rα="+num2str(alphaVal)+"°"
+		Legend/C/A=RC/N=text0/J/X=1.00/Y=10.00/W=ModelvsExpPlot totalLegend + legendPortion	 + "\r\\JC# of Peaks = "+num2str(npks)+"\rΧ\\S2\\M="+num2str(rcsVal)+"\rα="+num2str(alphaVal)+"°"
 	else
 		DoWindow/F ModelvsExpPlot
 		//Remove old traces
@@ -2651,17 +2806,17 @@ Function plotDFTBBvsEXP(thetaList,osVal,ovpVal,alpha,mol)
 			fitName = StringFromList(i,fitNXFS)
 			Wave fitW  = $fitName
 			res =(( nxfs - fitW)/nxfs)*100	
-			pDiff = calcPercentDiff(nxfs,fitW)
-			percentDiff[i] = pDiff
+			//pDiff = calcPercentDiff(nxfs,fitW)
+			//percentDiff[i] = pDiff
 			AppendToGraph/W=ModelvsExpPlot fitW vs enWave
 			ModifyGraph lstyle($fitName)=3
 			res =(( nxfs - fitW)/nxfs)*100	
-			pDiff = calcPercentDiff(nxfs,fitW)
+			//pDiff = calcPercentDiff(nxfs,fitW)
 			ModifyGraph rgb($expName)=(r,g,b),rgb($fitName)=(r,g,b),lsize($expName)=3,lsize($fitName)=3
 			
 			AppendToGraph/W=ModelvsExpPlot/L=residuals res vs enWave
 			ModifyGraph rgb($resName)=(r,g,b)
-			percentDiff[i] = pDiff
+			//percentDiff[i] = pDiff
 		endfor
 		
 		//Append the DFT step edge onto graph
@@ -2683,10 +2838,10 @@ Function plotDFTBBvsEXP(thetaList,osVal,ovpVal,alpha,mol)
 		Label residuals "Residuals[%]\\U"
 		Label bottom "Transition Energy[eV]"
 		SetAxis bottom 283,320
-		SetAxis residuals -100,100
-		SetAxis peaks *,90000
+		SetAxis residuals -20,20
+		SetAxis peaks *,100000
 		
-		totalLegend = "θ[°]  EXP  DFT  %Diff\r"
+		totalLegend = "θ[°]  EXP  DFT\r"
 		legendPortion = ""
 		whichList = fitNXFS
 		for(i=0;i<n;i+=1)
@@ -2694,12 +2849,12 @@ Function plotDFTBBvsEXP(thetaList,osVal,ovpVal,alpha,mol)
 			dftSpec = StringFromList(i,whichList)
 			expSpec = StringFromList(i,expNXFS)
 			if(i != (n-1))
-				legendPortion += theta + "° \\s('"+ expSpec +"') \\s('" + dftSpec +"') " + num2str(percentDiff[i]) +"\r\n"
+				legendPortion += theta + "° \\s('"+ expSpec +"') \\s('" + dftSpec +"')\r\n"// + num2str(percentDiff[i]) +"\r\n"
 			else
-				legendPortion += theta + "° \\s('"+ expSpec +"') \\s('" + dftSpec +"') " + num2str(percentDiff[i]) 
+				legendPortion += theta + "° \\s('"+ expSpec +"') \\s('" + dftSpec +"')"// + num2str(percentDiff[i]) 
 			endif
 		endfor
-		Legend/C/A=RT/N=text0/J/W=ModelvsExpPlot totalLegend + legendPortion	 + "\r\\JC# of Peaks = "+num2str(npks)+"\rΧ\\S2\\M="+num2str(rcsVal)+"\rα="+num2str(alphaVal)+"°"
+		Legend/C/A=RC/N=text0/J/X=1.00/Y=10.00/W=ModelvsExpPlot totalLegend + legendPortion	 + "\r\\JC# of Peaks = "+num2str(npks)+"\rΧ\\S2\\M="+num2str(rcsVal)+"\rα="+num2str(alphaVal)+"°"
 	endif
 	SetDataFolder $iniFolder
 End
@@ -2767,4 +2922,226 @@ Function ovpVisualizerSV(sva) : SetVariableControl
 	endswitch
 
 	return 0
+End
+
+Function AlphaFitBAScale_Slider(sa) : SliderControl
+	STRUCT WMSliderAction &sa
+
+	switch( sa.eventCode )
+		case -3: // Control received keyboard focus
+		case -2: // Control lost keyboard focus
+		case -1: // Control being killed
+			break
+		default:
+			if( sa.eventCode & 1 ) // value set
+				Variable curval = sa.curval
+			endif
+			Wave piIntWave  = root:piExp2D
+			Wave sigIntWave = root:sigExp2D
+			Wave piFitWave  = root:piFitResults2D
+			Wave sigFitWave = root:sigFitResults2D
+			Wave piPw       = root:piPW2D
+			Wave sigPw      = root:sigPW2D
+			Wave tw         = root:thetas 
+			Wave etaNEXAFS  = root:ScaledEtaNEXAFS
+			Wave stepWave   = root:STEPWAVE_1
+			
+			ControlInfo/W=alphaETAPanel slider0
+			Variable colPi  = V_Value
+			ControlInfo/W=alphaETAPanel slider1
+			Variable colSig = V_Value
+			ControlInfo/W=alphaETAPanel slider2
+			Variable layer  = V_Value
+			ControlInfo/W=alphaETAPanel etaChange
+			Variable etaDel  = V_Value
+			dispAlphaETA(piIntWave,piFitWave,piPw,sigIntWave,sigFitWave,sigPw,tw,colPi,colSig,layer,etaNEXAFS,stepWave,etaDel)
+			break
+	endswitch
+
+	return 0
+End
+
+Function AlphaETAPlottingPanel(pwPi,pwSigma)
+	Wave pwPi,pwSigma
+	
+	Variable nx = DimSize(pwPi,1),ny=DimSize(pwSigma,1),nz=DimSize(pwPi,2),i
+	
+	NewPanel/N=alphaETAPanel/K=1/W=(0,0,850,250)
+	//This slider wil cycle through the different energies for the Pi range Alpha Fits
+	Slider slider0 vert=0,side=2,limits={0,nx-1,1},pos={301,35},size={235,57},proc=AlphaFitBAScale_Slider
+	//This slider wil cycle through the different energies for the Sigma range Alpha Fits
+	Slider slider1 vert=0,side=2,limits={0,ny-1,1},pos={25,112},size={803,57},proc=AlphaFitBAScale_Slider
+	//This slider wil cycle through the etas which correspond to a layer on the 3D waves
+	Slider slider2 vert=0,side=2,limits={0,nz-1,1},pos={25,183},size={803,57},proc=AlphaFitBAScale_Slider
+	
+	SetVariable etaChange title="etaDel",pos={173,18},size={100,19},value=_NUM:0.001
+	
+	TitleBox Slider0Name title="Pi Energy",pos={384,12}
+	TitleBox Slider1Name title="Sigma Energy",pos={376,91}
+	TitleBox Slider2Name title="eta",pos={408,165}
+End
+
+Function dispAlphaETA(piIntWave,piFitWave,piPw,sigIntWave,sigFitWave,sigPw,tw,colPi,colSig,layer,etaNEXAFS,stepWave,etaDel)
+	
+	Wave piIntWave,piFitWave,piPw,sigIntWave,sigFitWave,sigPw,tw,etaNEXAFS,stepWave
+	Variable colPi,colSig,layer,etaDel
+	
+	Variable currentETA = 1 - layer*etaDel
+	WaveStats/Q/RMD=[0,0][][layer] piPw
+	Variable piAlphaAVG = V_avg
+	WaveStats/Q/RMD=[0,0][][layer] sigPw
+	Variable sigAlphaAVG = V_avg
+	Variable avgAlphaDif = abs( sigAlphaAVG - piAlphaAVG)
+	Variable piAlpha = piPw[0][colPi][layer]
+	Variable sigAlpha = sigPw[0][colSig][layer]
+	
+	String name1 = NameOfWave(piIntWave)	
+	if(colPi >= DimSize(piIntWave,1))
+		Abort "No further data."
+	endif
+	
+	String name2 = NameOfWave(sigIntWave)	
+	if(colSig >= DimSize(sigIntWave,1))
+		Abort "No further data."
+	endif
+	
+	String name3 = NameOfWave(piFitWave)
+	String name4 = NameOfWave(sigFitWave)
+	String name5 = NameOfWave(piPw)
+	String name6 = NameOfWave(sigPw)
+	
+	WaveStats/Q/RMD=[][colPi,colPi][layer,layer] piIntWave
+	Variable maxPi = V_max,minPi = V_min
+	
+	WaveStats/Q/RMD=[][colSig,colSig][layer,layer] sigIntWave
+	Variable maxSig = V_max,minSig = V_min
+	Variable maxVal = 170E3
+	Variable i,nSpec = numpnts(tw)
+	
+	//Make label for eta plots
+	String labelETA = ""
+	for(i=0;i<nSpec;i+=1)
+		String cTheta = num2str(tw[i])
+		if(i==0)
+			labelETA += "\\s(ScaledEtaNEXAFS) " + cTheta + "°\r"
+		else
+			labelETA += "\\s(ScaledEtaNEXAFS#" + num2str(i) + ") " + cTheta + "°\r"
+		endif
+	endfor
+	
+	//Plot the alpha fits in the Pi Range
+	DoWindow/F PiAlphaETAPlot
+	if(!V_Flag)
+		Display/W=(0,0,400,300)/N=PiAlphaETAPlot/K=1 
+		AppendToGraph/W=PiAlphaETAPlot piIntWave[*][colPi][layer],piFitWave[*][colPi][layer] VS tw
+		ModifyGraph mode=4,marker=19,rgb($name1)=(0,0,0),mirror=1,minor(bottom)=1,fStyle=1,mode=4,marker=19
+		SetAxis left 0,maxVal
+		Label/W=PiAlphaETAPlot bottom "θ[°]"
+		Label/W=PiAlphaETAPlot left "Mass Absorbance [cm\S2\M/g]\U"
+		Legend/C/N=text0/J/S=1/A=MC/W=PiAlphaETAPlot "\\JCπ\r\\JL\\s("+name1+") Exp\r\\s("+name3+") Fit\r\\JCα="+num2str(piAlpha)+"°"
+	else
+		DoWindow/F PiAlphaETAPlot
+		String tlist = TraceNameList("PiAlphaETAPlot",";",1)
+		Variable n = ItemsInList(tlist)
+		for(i=0;i<n;i+=1)
+			String cTrace = StringFromList(i,tlist)
+			RemoveFromGraph/W=PiAlphaETAPlot $cTrace
+		endfor
+		AppendToGraph/W=PiAlphaETAPlot piIntWave[*][colPi][layer],piFitWave[*][colPi][layer] VS tw
+		ModifyGraph mode=4,marker=19,rgb($name1)=(0,0,0),mirror=1,minor(bottom)=1,fStyle=1,mode=4,marker=19
+		SetAxis left 0,maxVal
+		Label/W=PiAlphaETAPlot bottom "θ[°]"
+		Label/W=PiAlphaETAPlot left "Mass Absorbance [cm\S2\M/g]\U"
+		Legend/C/N=text0/J/S=1/A=MC/W=PiAlphaETAPlot "\\JCπ\r\\JL\\s("+name1+") Exp\r\\s("+name3+") Fit\r\\JCα="+num2str(piAlpha)+"°"
+	endif
+	
+	//Plot the alpha fits in the Sigma Range
+	DoWindow/F SigmaAlphaETAPlot
+	if(!V_Flag)
+		Display/W=(0,0,400,300)/N=SigmaAlphaETAPlot/K=1 
+		AppendToGraph/W=SigmaAlphaETAPlot sigIntWave[*][colSig][layer],sigFitWave[*][colSig][layer] VS tw
+		ModifyGraph mode=4,marker=19,rgb($name2)=(0,0,0),mirror=1,minor(bottom)=1,fStyle=1,mode=4,marker=19
+		SetAxis left 0,maxVal
+		Label/W=SigmaAlphaETAPlot bottom "θ[°]"
+		Label/W=SigmaAlphaETAPlot left "Mass Absorbance [cm\S2\M/g]\U"
+		Legend/C/N=text0/J/S=1/A=MC/W=SigmaAlphaETAPlot "\\JCσ\r\\JL\\s("+name2+") Exp\r\\s("+name4+") Fit\r\\JCα="+num2str(sigAlpha)+"°"
+	else
+		DoWindow/F SigmaAlphaETAPlot
+		tlist = TraceNameList("SigmaAlphaETAPlot",";",1)
+		n = ItemsInList(tlist)
+		for(i=0;i<n;i+=1)
+			cTrace = StringFromList(i,tlist)
+			RemoveFromGraph/W=SigmaAlphaETAPlot $cTrace
+		endfor
+		AppendToGraph/W=SigmaAlphaETAPlot sigIntWave[*][colSig][layer],sigFitWave[*][colSig][layer] VS tw
+		ModifyGraph mode=4,marker=19,rgb($name2)=(0,0,0),mirror=1,minor(bottom)=1,fStyle=1,mode=4,marker=19
+		SetAxis left 0,maxVal
+		Label/W=SigmaAlphaETAPlot bottom "θ[°]"
+		Label/W=SigmaAlphaETAPlot left "Mass Absorbance [cm\S2\M/g]\U"
+		Legend/C/N=text0/J/S=1/A=MC/W=SigmaAlphaETAPlot "\\JCσ\r\\JL\\s("+name2+") Exp\r\\s("+name4+") Fit\r\\JCα="+num2str(sigAlpha)+"°"
+	endif
+	
+	//Need a way to plot the AR NEXAFS as a function of eta...
+	DoWindow/F ETA_nexafsPlot
+	String Rlist = "0;1;39321;65535",Glist = "3204;34817;1;43690",Blist = "13107;52428;1;0",wname
+	String eList = WaveList("E_*",";","")
+	Variable nw = ItemsInList(eList) 
+	if(!V_Flag)
+		Display/W=(0,0,400,300)/N=ETA_nexafsPlot/K=1 
+		for(i=0;i<nw;i+=1)
+			Variable r = str2num(StringFromList(i,Rlist))	,g = str2num(StringFromList(i,Glist)),b = str2num(StringFromList(i,Blist))
+			String cEn = StringFromList(i,eList)
+			Wave en = $cEn
+			AppendToGraph/W=ETA_nexafsPlot etaNEXAFS[][i][layer] vs en
+			if(i==0)
+				wname = "ScaledEtaNEXAFS"
+				else
+				wname = "ScaledEtaNEXAFS#" + num2str(i)
+			endif
+			ModifyGraph rgb($wname)=(r,g,b),lsize($wname)=2
+		endfor
+		AppendToGraph/W=ETA_nexafsPlot stepWave vs en
+		ModifyGraph rgb(STEPWAVE_1)=(0,0,0)
+		ModifyGraph mirror=1,minor(bottom)=1,fStyle=1
+		SetAxis left 0,maxVal
+		Label/W=ETA_nexafsPlot bottom "Transition Energy[eV]"
+		Label/W=ETA_nexafsPlot left "Mass Absorbance [cm\S2\M/g]\U"
+		Legend/C/N=text0/J/S=1/A=RT/W=ETA_nexafsPlot "\\JCη=" + num2str(currentETA) + "\r" + labelETA + "\\s(STEPWAVE_1) Step\rΔα = "+num2str(avgAlphaDif)+"°"
+	else
+		DoWindow/F ETA_nexafsPlot
+		tlist = TraceNameList("ETA_nexafsPlot",";",1)
+		n = ItemsInList(tlist)
+		for(i=n-1;i>=0;i-=1)
+			cTrace = StringFromList(i,tlist)
+			RemoveFromGraph/W=ETA_nexafsPlot $cTrace
+		endfor
+		for(i=0;i<nw;i+=1)
+			r = str2num(StringFromList(i,Rlist))	;g = str2num(StringFromList(i,Glist));b = str2num(StringFromList(i,Blist))
+			cEn = StringFromList(i,eList)
+			Wave en = $cEn
+			AppendToGraph/W=ETA_nexafsPlot etaNEXAFS[][i][layer] vs en
+			if(i==0)
+				wname = "ScaledEtaNEXAFS"
+				else
+				wname = "ScaledEtaNEXAFS#" + num2str(i)
+			endif
+			ModifyGraph rgb($wname)=(r,g,b),lsize($wname)=2
+		endfor
+		AppendToGraph/W=ETA_nexafsPlot stepWave vs en
+		ModifyGraph rgb(STEPWAVE_1)=(0,0,0)
+		ModifyGraph mirror=1,minor(bottom)=1,fStyle=1
+		SetAxis left 0,maxVal
+		Label/W=ETA_nexafsPlot bottom "Transition Energy[eV]"
+		Label/W=ETA_nexafsPlot left "Mass Absorbance [cm\S2\M/g]\U"
+		Legend/C/N=text0/J/S=1/A=RT/W=ETA_nexafsPlot "\\JCη=" + num2str(currentETA) + "\r" + labelETA + "\\s(STEPWAVE_1) Step\rΔα = "+num2str(avgAlphaDif)+"°"
+	endif
+End
+
+Function roundToSigDig(value, numSigDigits)
+	variable value, numSigDigits
+
+	string str
+	sprintf str, "%.*g\r", numSigDigits, value
+	//print value,str
+	return str2num(str)
 End

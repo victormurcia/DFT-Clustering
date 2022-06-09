@@ -41,7 +41,12 @@ Function filteringRoutines(fnum,iniFolder,baseFolderName,atomName,erange,tval,br
 	print "Starting clustering of transitions using overlap threshold of " + num2str(ovpMax) + " %"
 	String ffFolder = GetdataFolder(1)
 	Variable cMethod = 2//
-	clusteringTransitions(allParamsF1Sorted,ovpWaveAll,tval,ovpMax,Eini,Efin,"ALL",cMethod,mol)
+	Variable clusteringAlgorithm = 1
+	if(clusteringAlgorithm == 1)//Use overlap matrix clustering method
+		clusteringTransitions(allParamsF1Sorted,ovpWaveAll,tval,ovpMax,Eini,Efin,"ALL",cMethod,mol)
+	elseif(clusteringAlgorithm ==2)//Use Gaussian percent difference clustering method
+		pDiffClusteringWrapper(allParamsF1Sorted,ovpMax,"ALL",tval,ovpMax,mol,Eini,Efin)
+	endif
 	SetDataFolder $ffFolder
 	
 End

@@ -160,13 +160,21 @@ Function filterDFT(atomName,fnum,tval,ovpmax,maxRot,LUMOwave,[broadShift,erange,
 	//Make Global Variables to store results to be used in paramspace exploration
 	Variable/G root:perDiff
 	Variable/G root:numpeaks
-	Variable/G root:redchiSq
+	Variable/G root:redchiSqBBCl
+	Variable/G root:redchiSqBBCluref
+	Variable/G root:redchiSqExpCl
+	Variable/G root:chiSqBBCl
+	Variable/G root:chiSqBBCluref
+	Variable/G root:chiSqExpCl
+	Variable/G root:GFBBCl
+	Variable/G root:GFBBCluref
+	Variable/G root:GFExpCl
+	Variable/G root:compTime
 	
 	if(ParamIsDefault(modelAlpha))
 		modelAlpha = "no"
 	endif
 	
-	Variable timeRefNum = StartMSTimer
 	//holdSecAmp=holdTensorElems
 	String startFolder = "root:Packages:DFTClustering:PolarAngles_" + mol +":"
 	String baseFolderName = startFolder + "TransitionFiltering_" + replacestring(".", num2str(tval),"p") + "OS_" + replacestring(".", num2str(ovpMax),"p") + "OVP"
@@ -251,15 +259,17 @@ Function filterDFT(atomName,fnum,tval,ovpmax,maxRot,LUMOwave,[broadShift,erange,
 			simDFT(tval,ovpmax,IPwave,mol,alpha,i0,phi,expSpecName,expEnergyName,expFolderPath,fit,rigidShift,thetaList,anchorStep1,anchorStep2,anchorExp1,anchorExp2,stepWid1,stepWid2,stepE1,stepE2,holdAmps=holdAmps,holdWidths=holdWidths,holdPos=holdPos,d=1,NEXAFStype=NEXAFStype,maskEnergy1=maskEnergy1,maskEnergy2=maskEnergy2,pkToRefine=pkToRefine,holdModTheta=holdTensorElems)
 		endif
 	endif
-	Variable V = 1
-	if(V)
-	plotRawDFTvsClusterDFT(tval,ovpMax,mol)
-	plotParamChanges(tval,ovpMax,alpha,mol)
-	plotDFTBBvsEXP(thetaList,tval,ovpMax,alpha,mol)
-	ENDIF
-	Variable tFFEnd =stopMSTimer(timeRefNum)/(1E6)
-	print "All operations completed."
-	print "The process took " +num2str(tFFEnd) + " seconds."
+	if(justFit)
+		plotRawDFTvsClusterDFT(tval,ovpMax,mol)
+		plotParamChanges(tval,ovpMax,alpha,mol)
+		plotDFTBBvsEXP(thetaList,tval,ovpMax,alpha,mol)
+	elseif(StringMatch(modelAlpha,"yes"))	
+		plotRawDFTvsClusterDFT(tval,ovpMax,mol)
+		plotParamChanges(tval,ovpMax,alpha,mol)
+		plotDFTBBvsEXP(thetaList,tval,ovpMax,alpha,mol)	
+	else	
+		plotRawDFTvsClusterDFT(tval,ovpMax,mol)
+	endif
 	
 	return pDiff1
 	

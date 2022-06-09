@@ -81,18 +81,41 @@ Function seqThresholds(atomName,fnum,osWave,ovpWave,maxRot,LUMOwave,[broadShift,
 	Variable i,j
 	Variable currentOS, currentOVP
 	
-	Make/O/N=(nOS,nOVP) pDiff,rChiSq,nPeaks
+	Make/O/N=(nOS,nOVP) pDiff,rchiSqDFTCl,nPeaks,rchiSqExpCl,chiSqDFTClw,chiSqExpClw,GFBBClw,GFExpClw,compTimew,rchiSqDFTClurefW,chiSqDFTClurefW,GFBBClurefW
 	for(i=0;i<=nOS-1;i+=1)
 		currentOS = osWave[i]
 		for(j=0;j<=nOVP-1;j+=1)
+			Variable timeRefNum = StartMSTimer
 			currentOVP = ovpWave[j] 
 			filterDFT(atomName,fnum,currentOS,currentOVP,maxRot,LUMOwave,broadShift=broadShift,erange=erange,broad1=broad1,broad2=broad2,Eini=Eini,Efin=Efin,d=d,gRes=gRes,buildSym=buildSym,corrWave=corrWave,dClusters=dClusters,realign=realign,thx=thx,thy=thy,thz=thz,rotOrder=rotOrder,modelAlpha=modelAlpha,IPwave=IPwave,expSpecName=expSpecName,expEnergyName=expEnergyName,expFolderPath=expFolderPath,mol=mol,alpha=alpha,i0=i0,phi=phi,fit=fit,rigidShift=rigidShift,stepShift=stepShift,thetaList=thetaList,NEXAFStype=NEXAFStype,startPre=startPre,startPost=startPost,endPre=endPre,endPost=endPost,justModel=justModel,justFit=justFit,anchorStep1=anchorStep1,anchorStep2=anchorStep2,anchorExp1=anchorExp1,anchorExp2=anchorExp2,stepWid1=stepWid1,stepWid2=stepWid2,stepE1=stepE1,stepE2=stepE2,holdPos=holdPos,holdWidths=holdWidths,holdAmps=holdAmps,refinement=refinement,maskEnergy1=maskEnergy1,maskEnergy2=maskEnergy2,pkToRefine=pkToRefine,refitPWave=refitPWave,holdTensorElems=holdTensorElems)
 			NVAR perDiff = root:perDiff
 			NVAR numpeaks = root:numpeaks
-			NVAR reducedChiSq = root:redchiSq
-			pDiff[i][j]    = perDiff
-			nPeaks[i][j]   = numpeaks
-			rChiSq[i][j] = reducedChiSq		
+			NVAR redchiSqBBCl = root:redchiSqBBCl
+			NVAR redchiSqExpCl = root:redchiSqExpCl
+			NVAR chiSqBBCl = root:chiSqBBCl
+			NVAR chiSqExpCl = root:chiSqExpCl
+			NVAR GFBBCl = root:GFBBCl
+			NVAR GFExpCl = root:GFExpCl
+			NVAR chiSqBBCluref = root:chiSqBBCluref
+			NVAR GFBBCluref = root:GFBBCluref
+			NVAR redchiSqBBCluref = root:redchiSqBBCluref
+			
+			pDiff[i][j]            = perDiff
+			nPeaks[i][j]           = numpeaks
+			rchiSqDFTCl[i][j]      = redchiSqBBCl
+			rchiSqExpCl[i][j]      = redchiSqExpCl
+			chiSqDFTClw[i][j]      = chiSqBBCl
+			chiSqExpClw[i][j]      = chiSqExpCl
+			GFBBClw[i][j]          = GFBBCl
+			GFExpClw[i][j]         = GFExpCl
+			rchiSqDFTClurefW[i][j] = redchiSqBBCluref
+			chiSqDFTClurefW[i][j]  = chiSqBBCluref
+			GFBBClurefW[i][j]      = GFBBCluref
+			Variable tFFEnd =stopMSTimer(timeRefNum)/(1E6)
+			//NVAR compTime = root:compTime
+			//compTime = tFFEnd
+			compTimew[i][j]  = tFFEnd
+			print "The process took " +num2str(tFFEnd) + " seconds."		
 		endfor
 	endfor
 	
@@ -101,8 +124,9 @@ Function seqThresholds(atomName,fnum,osWave,ovpWave,maxRot,LUMOwave,[broadShift,
 	String pathToExpWave = expFolderPath + "allExpSpec"
 	Wave expSpecWave = $pathToExpWave
 	Variable n = numpnts(expSpecWave)
-	Wave BICwave = calculateBIC(rChiSq,nPeaks,3,n)
-	plotParamSpaceResults(osWave,ovpWave,BICwave,pDiff,nPeaks,rChiSq)
+	Wave BICDFTCl  = calculateBIC(GFBBClw,nPeaks,1,2000,"DFT_Cl")
+	Wave BICDFTExp = calculateBIC(GFExpClw,nPeaks,4,n,"EXP_Cl")
+	plotParamSpaceResults(osWave,ovpWave,BICDFTExp,pDiff,nPeaks,rchiSqExpCl,BICDFTCl,rchiSqDFTCl,chiSqDFTClw,chiSqExpClw,GFBBClw,GFExpClw,compTimew)
 	Variable endTimer = StopMSTimer(seqTimer)/1000000
 	
 	if(endTimer <= 60)
@@ -112,20 +136,26 @@ Function seqThresholds(atomName,fnum,osWave,ovpWave,maxRot,LUMOwave,[broadShift,
 	endif
 End
 
-Function/WAVE calculateBIC(chSqWave,nPeaksWave,nParams,n)
+Function/WAVE calculateBIC(chSqWave,nPeaksWave,nParams,n,stage,[openParams])
 
 	Wave chSqWave //2d wave containing chiSq values from p-space exploration
 	Wave nPeaksWave //2d wave containing the number of BB peaks resulting from each OS/OVP combination
 	Variable nParams //How many parameters were opened during the fit?
 	Variable N //How many points does the experimental data have?
+	String stage
+	Wave openParams
 	
+	String name = "BIC_" + stage
 	Variable x = DimSize(chSqWave,0),y=DimSize(chSqWave,1),i,j
-	Make/O/N=(x,y) BICWave
+	Make/O/N=(x,y) $name
+	Wave BICWave = $name
+	
 	for(i=0;i<x;i+=1)
 		for(j=0;j<y;j+=1)
 			Variable GF =  chSqWave[i][j]
-			Variable k = nPeaksWave[i][j] * nParams
-			Variable BIC = (n - k) *(GF/n) + k * ln(n)
+			Variable k = nPeaksWave[i][j] * openParams[i][j] //+ 1
+			//Variable BIC = (n - k) *(GF/n) + k * ln(n)
+			Variable BIC = n *ln(GF/n) + k * ln(n)
 			BICWave[i][j] = BIC
 		endfor
 	endfor
@@ -133,8 +163,23 @@ Function/WAVE calculateBIC(chSqWave,nPeaksWave,nParams,n)
 	return BICWave
 End
 
-Function plotParamSpaceResults(osw,ovpw,BICwave,pDiff,nPeaks,rChiSq)
-	Wave osw,ovpw,BICwave,pDiff,nPeaks,rChiSq
+Function calculateBIC2(chSq,nPeaks,nParams,n)
+
+	Variable chSq //2d wave containing chiSq values from p-space exploration
+	Variable nPeaks //2d wave containing the number of BB peaks resulting from each OS/OVP combination
+	Variable nParams //How many parameters were opened during the fit?
+	Variable N //How many points does the experimental data have?
+	
+	Variable GF =  chSq
+	Variable k = nPeakS * nParams + 1
+	Variable BIC = (n - k) *(GF/n) + k * ln(n)
+
+	print BIC
+	return BIC
+End
+
+Function plotParamSpaceResults(osw,ovpw,BICDFTExp,pDiff,nPeaks,rchiSqExpCl,BICDFTCl,rchiSqDFTCl,chiSqDFTClw,chiSqExpClw,GFBBClw,GFExpClw,compTimew)
+	Wave osw,ovpw,BICDFTExp,pDiff,nPeaks,rchiSqExpCl,BICDFTCl,rchiSqDFTCl,chiSqDFTClw,chiSqExpClw,GFBBClw,GFExpClw,compTimew
 	
 	Variable nx = numpnts(osw),ny=numpnts(ovpw),i=0
 	//Make axis waves for plotting image
@@ -153,21 +198,26 @@ Function plotParamSpaceResults(osw,ovpw,BICwave,pDiff,nPeaks,rChiSq)
 		ovpt[i] = num2str(ovpw[i])
 		ovpScale[i] = i
 	endfor
-	
+	String BICDFTExpName = NameOfWave(BICDFTExp)
+	String BICDFTClName = NameOfWave(BICDFTCl)
+	String rchiSqDFTClName = NameOfWave(rchiSqDFTCl)
+	String GFBBClwName = NameOfWave(GFBBClw)
+	String GFExpClwName = NameOfWave(GFExpClw)
+	String compTimewName = NameOfWave(compTimew)
 	//Make plots
-	DoWindow BICPlot
+	DoWindow BICDFTEXPPlot
 	if(!V_Flag)
-		Display/N=BICPlot/K=1/W=(0,0,300,500)  
-		AppendImage/W=BICPlot BICWave
+		Display/N=BICDFTEXPPlot/K=1/W=(0,0,300,500)  
+		AppendImage/W=BICDFTEXPPlot BICDFTExp
 		ModifyGraph userticks(left)={ovpScale,ovpt},userticks(bottom)={osScale,ost}
 		SetAxis left ny-0.5,-0.5
 		SetAxis bottom -0.5,nx-0.5
 		ModifyGraph mirror=1,fStyle=1,margin(right)=86
 		Label left "OVP[%]"
 		Label bottom "OS[%]"
-		ModifyImage BICWave ctab= {*,*,YellowHot256,1}
-		ColorScale/C/N=text0/A=RC/X=1.00/Y=5.00/E image=BICWave,fstyle=1
-		ColorScale/C/N=text0 "BIC"
+		ModifyImage $BICDFTExpName ctab= {*,*,YellowHot256,1}
+		ColorScale/C/N=text0/A=RC/X=1.00/Y=5.00/E image=$BICDFTExpName,fstyle=1
+		ColorScale/C/N=text0 "Exp vs Cl BIC"
 	endif
 	DoWindow nPeaksPlot
 	if(!V_Flag)
@@ -199,18 +249,93 @@ Function plotParamSpaceResults(osw,ovpw,BICwave,pDiff,nPeaks,rChiSq)
 		ColorScale/C/N=text2 "%Diff"
 	endif
 	
-	DoWindow nChiSqPlot
+	DoWindow rchiSqExpClPlot
 	if(!V_Flag)
-		Display/N=nChiSqPlot/K=1/W=(900,0,1200,500)  
-		AppendImage/W=nChiSqPlot rChiSq
+		Display/N=rchiSqExpClPlot/K=1/W=(900,0,1200,500)  
+		AppendImage/W=rchiSqExpClPlot rchiSqExpCl
 		ModifyGraph userticks(left)={ovpScale,ovpt},userticks(bottom)={osScale,ost}
 		SetAxis left ny-0.5,-0.5
 		SetAxis bottom -0.5,nx-0.5
 		ModifyGraph mirror=1,fStyle=1,margin(right)=86
 		Label left "OVP[%]"
 		Label bottom "OS[%]"
-		ModifyImage rChiSq ctab= {*,*,YellowHot256,1}
-		ColorScale/C/N=text3/A=RC/X=1.00/Y=5.00/E image=rChiSq,fstyle=1
-		ColorScale/C/N=text3 "rChiSq"
+		ModifyImage rchiSqExpCl ctab= {*,*,YellowHot256,1}
+		ColorScale/C/N=text3/A=RC/X=1.00/Y=5.00/E image=rchiSqExpCl,fstyle=1
+		ColorScale/C/N=text3 "Exp vs Cl rChiSq"
+	endif
+	
+	DoWindow BICDFTClPlot
+	if(!V_Flag)
+		Display/N=BICDFTClPlot/K=1/W=(0,0,300,500)  
+		AppendImage/W=BICDFTClPlot BICDFTCl
+		ModifyGraph userticks(left)={ovpScale,ovpt},userticks(bottom)={osScale,ost}
+		SetAxis left ny-0.5,-0.5
+		SetAxis bottom -0.5,nx-0.5
+		ModifyGraph mirror=1,fStyle=1,margin(right)=86
+		Label left "OVP[%]"
+		Label bottom "OS[%]"
+		ModifyImage $BICDFTClName ctab= {*,*,YellowHot256,1}
+		ColorScale/C/N=text4/A=RC/X=1.00/Y=5.00/E image=$BICDFTClName,fstyle=1
+		ColorScale/C/N=text4 "DFT vs Cl BIC"
+	endif
+	
+	DoWindow rchiSqDFTClPlot
+	if(!V_Flag)
+		Display/N=rchiSqDFTClPlot/K=1/W=(900,0,1200,500)  
+		AppendImage/W=rchiSqDFTClPlot rchiSqDFTCl
+		ModifyGraph userticks(left)={ovpScale,ovpt},userticks(bottom)={osScale,ost}
+		SetAxis left ny-0.5,-0.5
+		SetAxis bottom -0.5,nx-0.5
+		ModifyGraph mirror=1,fStyle=1,margin(right)=86
+		Label left "OVP[%]"
+		Label bottom "OS[%]"
+		ModifyImage $rchiSqDFTClName ctab= {*,*,YellowHot256,1}
+		ColorScale/C/N=text5/A=RC/X=1.00/Y=5.00/E image=rchiSqDFTCl,fstyle=1
+		ColorScale/C/N=text5 "DFT vs Cl rChiSq"
+	endif
+	
+	DoWindow GFBBClwPlot
+	if(!V_Flag)
+		Display/N=GFBBClwPlot/K=1/W=(900,0,1200,500)  
+		AppendImage/W=GFBBClwPlot GFBBClw
+		ModifyGraph userticks(left)={ovpScale,ovpt},userticks(bottom)={osScale,ost}
+		SetAxis left ny-0.5,-0.5
+		SetAxis bottom -0.5,nx-0.5
+		ModifyGraph mirror=1,fStyle=1,margin(right)=86
+		Label left "OVP[%]"
+		Label bottom "OS[%]"
+		ModifyImage $GFBBClwName ctab= {*,*,YellowHot256,1}
+		ColorScale/C/N=text6/A=RC/X=1.00/Y=5.00/E image=GFBBClw,fstyle=1
+		ColorScale/C/N=text6 "DFT vs Cl GFDFTClw"
+	endif
+	
+	DoWindow GFExpClwPlot
+	if(!V_Flag)
+		Display/N=GFExpClwPlot/K=1/W=(900,0,1200,500)  
+		AppendImage/W=GFExpClwPlot GFExpClw
+		ModifyGraph userticks(left)={ovpScale,ovpt},userticks(bottom)={osScale,ost}
+		SetAxis left ny-0.5,-0.5
+		SetAxis bottom -0.5,nx-0.5
+		ModifyGraph mirror=1,fStyle=1,margin(right)=86
+		Label left "OVP[%]"
+		Label bottom "OS[%]"
+		ModifyImage $GFExpClwName ctab= {*,*,YellowHot256,1}
+		ColorScale/C/N=text7/A=RC/X=1.00/Y=5.00/E image=GFExpClw,fstyle=1
+		ColorScale/C/N=text7 "DFT vs Cl GFExpClw"
+	endif
+	//chiSqDFTClw,chiSqExpClw
+	DoWindow compTimewPlot
+	if(!V_Flag)
+		Display/N=compTimewPlot/K=1/W=(900,0,1200,500)  
+		AppendImage/W=compTimewPlot compTimew
+		ModifyGraph userticks(left)={ovpScale,ovpt},userticks(bottom)={osScale,ost}
+		SetAxis left ny-0.5,-0.5
+		SetAxis bottom -0.5,nx-0.5
+		ModifyGraph mirror=1,fStyle=1,margin(right)=86
+		Label left "OVP[%]"
+		Label bottom "OS[%]"
+		ModifyImage $compTimewName ctab= {*,*,YellowHot256,1}
+		ColorScale/C/N=text8/A=RC/X=1.00/Y=5.00/E image=compTimew,fstyle=1
+		ColorScale/C/N=text8 "Computational Time[s]"
 	endif
 End

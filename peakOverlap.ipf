@@ -21,16 +21,24 @@ Function/WAVE peakOverlap(pWave,ovpWaveID,[ncl])
 	Make/O/N=(nTrans,nTrans) $ovpWaveName
 	Wave ovpWave    = $ovpWaveName
 	
-	Variable i,j,ovpArea,mu1,mu2,std1,std2,amp1,amp2,pOVP
+	Variable i,j,ovpArea,mu1,mu2,std1,std2,amp1,amp2,pOVP,wid=0.4
 	
 	for(i=0;i<=nTrans-1;i+=1)
 		mu1  = pWave[i][0]
-		std1 = pWave[i][2]
+		if(ParamIsDefault(ncl))//If first calculation of overlap, use a narrower and constant width for the peaks, else use standard width values from broad scheme
+			std1 = wid/fwhmConversion
+		else
+			std1 = pWave[i][2]
+		endif
 		amp1 = pWave[i][1]
 	
 		for(j=0;j<=nTrans-1;j+=1)
 			mu2 = pWave[j][0]
-			std2 = pWave[j][2]
+			if(ParamIsDefault(ncl))
+				std2 = wid/fwhmConversion
+			else
+				std2 = pWave[j][2]
+			endif
 			amp2 = pWave[j][1]
   		
 			if(i==j)//A peak always has 100% overlap with itself
@@ -40,7 +48,7 @@ Function/WAVE peakOverlap(pWave,ovpWaveID,[ncl])
 			elseif(amp1==0 || amp2==0)	//If the amplitude for either transition is 0, then there is no overlap
 				ovpWave[i][j] = 0
 			elseif(mu1 != mu2)	//If none of the above conditions are met AND the peak positions are different then calculate the overlap using the error function method [numerically]
-				pOVP = compGaussErf3(mu1,std1,amp1,mu2,std2,amp2,2000)
+				pOVP = compGaussErf3(mu1,std1,amp1,mu2,std2,amp2,2000,1)
 				if(pOVP < 0.01)
 					pOVP = 0
 				elseif(pOVP > 100)
@@ -68,61 +76,91 @@ End
 //This function calculates the percent overlap between two unnormalized Gaussian peaks.
 //It does this by determining the intersection point between the two Gaussians and then evaluating the
 //error function for each peak at the intersection point. 
-Function compGaussErf3(mu1,sd1,amp1,mu2,sd2,amp2,gRes)
+Function compGaussErf3(mu1,sd1,amp1,mu2,sd2,amp2,gRes,normal)
 
-	Variable mu1,sd1,amp1,mu2,sd2,amp2,gRes
+	Variable mu1,sd1,amp1,mu2,sd2,amp2,gRes,normal
 
-	Variable c,a1,a2,totAreaA
+	Variable c,a1,a2,totAreaA,areaA1,areaA2,ovpArea
 	//Different cases for solving for c		
-	if(sd1 == sd2)
-		c = (-2*ln(amp1/amp2)*sd1^2 + mu1^2 - mu2^2)/(2*mu1 - 2*mu2)
-	else
-		Variable radical
-		//Decide which root to take based on transition energies of peaks
-  		if(mu1 < mu2)
-  			radical = -sqrt(2*ln(amp1/amp2)*(sd2^2 - sd1^2) + mu1^2 -2*mu1*mu2 + mu2^2)
-  	 	elseif(mu1 > mu2)  
-  	 		radical =  sqrt(2*ln(amp1/amp2)*(sd2^2 - sd1^2) + mu1^2 -2*mu1*mu2 + mu2^2)
-  	 	endif	
-  		Variable numerator = (mu2*sd1/sd2) - (mu1*sd2/sd1) + radical
-  		Variable denominator = (sd1/sd2)- (sd2/sd1)
- 		c = numerator/denominator		
-	endif
-		
-	//Check if "c" is +/-Inf or a NaN
-	//If c is +/-Inf or a NaN, then there is no intersection point between Gaussians and the overlap is 100%
-	if(numtype(c) != 0)
-		a1 = amp1*sd1*sqrt(2*Pi)*(1/2)*(1 + erf((mu1)/(sd1*sqrt(2))))
-		a2 = amp2*sd2*sqrt(2*Pi)*(1/2)*(1 + erf((mu2)/(sd2*sqrt(2))))
-		
-		Variable areaA1 = amp1*sd1*sqrt(2*Pi)
-		Variable areaA2 = amp2*sd2*sqrt(2*Pi)
-		totAreaA = min(areaA1 , areaA2)
-		
-		Variable ovpArea
-		
-		if(amp1 > amp2)
-			ovpArea= ((a2)/totAreaA)*100
-		elseif(amp1 < amp2)
-			ovpArea= ((a1)/totAreaA)*100
+	if(normal)
+		if((mu1 == mu2) && (sd1 == sd2) && (amp1 == amp2))
+			ovpArea = 100
+		elseif(sd1 == sd2)
+			c = (mu1+mu2)/2
+			if(mu1 < mu2)
+				a1 = (1/2)*(1 + erf((mu1 - c)/(sd1*sqrt(2))))
+				a2 = (1/2)*(1 + erf((c - mu2)/(sd2*sqrt(2))))
+			elseif(mu1 > mu2)
+				a1 = (1/2)*(1 + erf((c-mu1)/(sd1*sqrt(2))))
+				a2 = (1/2)*(1 + erf((mu2-c)/(sd2*sqrt(2))))
+			endif
+		else
+			if(mu1 < mu2)
+				c = (mu2*sd1^2 - sd2*(mu1*sd2 + sd1*sqrt((mu1-mu2)^2 + 2*(sd1^2 - sd2^2)*ln(sd1/sd2))))/(sd1^2 - sd2^2)
+				a1 = (1/2)*(1 + erf((mu1 - c)/(sd1*sqrt(2))))
+				a2 = (1/2)*(1 + erf((c - mu2)/(sd2*sqrt(2))))
+			elseif(mu1 > mu2)
+				c = (mu1*sd2^2 - sd1*(mu2*sd1 + sd2*sqrt((mu2-mu1)^2 + 2*(sd2^2 - sd1^2)*ln(sd2/sd1))))/(sd2^2 - sd1^2)
+				a1 = (1/2)*(1 + erf((c-mu1)/(sd1*sqrt(2))))
+				a2 = (1/2)*(1 + erf((mu2-c)/(sd2*sqrt(2))))
+			endif
 		endif
-		
-	else
-		if(mu1 < mu2)
-			a1 = amp1*sd1*sqrt(2*Pi)*(1/2)*(1 + erf((mu1 - c)/(sd1*sqrt(2))))
-			a2 = amp2*sd2*sqrt(2*Pi)*(1/2)*(1 + erf((c - mu2)/(sd2*sqrt(2))))
-		elseif(mu1 > mu2)
-			a1 = amp1*sd1*sqrt(2*Pi)*(1/2)*(1 + erf((c-mu1)/(sd1*sqrt(2))))
-			a2 = amp2*sd2*sqrt(2*Pi)*(1/2)*(1 + erf((mu2-c)/(sd2*sqrt(2))))
-		endif
-		
-		areaA1 = amp1*sd1*sqrt(2*Pi)
-		areaA2 = amp2*sd2*sqrt(2*Pi)
-		totAreaA = min(areaA1 , areaA2)
-		//totAreaA = (amp1*sd1*sqrt(2*Pi) + amp2*sd2*sqrt(2*Pi))/2
+	//	Variable a1 = (1/2) + (1/2)*erf((c - mu1)/(sd1*sqrt(2)))	//Area of Gauss1
+	//	Variable a2 = (1/2) + (1/2)*erf((c - mu2)/(sd2*sqrt(2)))	//Area of Gauss2
+		areaA1 = sd1*sqrt(2*Pi)
+		areaA2 = sd2*sqrt(2*Pi)
+		totAreaA = ((1/(sd1*sqrt(2*Pi)))*sd1*sqrt(2*Pi) + (1/(sd2*sqrt(2*Pi)))*sd2*sqrt(2*Pi))/2
 		ovpArea  = ((a1 + a2)/totAreaA)*100
+	elseif(!normal)
+	//*/*/*/*
+		if(sd1 == sd2)
+			c = (-2*ln(amp1/amp2)*sd1^2 + mu1^2 - mu2^2)/(2*mu1 - 2*mu2)
+		else
+			Variable radical
+			//Decide which root to take based on transition energies of peaks
+  			if(mu1 < mu2)
+  				radical = -sqrt(2*ln(amp1/amp2)*(sd2^2 - sd1^2) + mu1^2 -2*mu1*mu2 + mu2^2)
+  		 	elseif(mu1 > mu2)  
+  		 		radical =  sqrt(2*ln(amp1/amp2)*(sd2^2 - sd1^2) + mu1^2 -2*mu1*mu2 + mu2^2)
+  		 	endif	
+  			Variable numerator = (mu2*sd1/sd2) - (mu1*sd2/sd1) + radical
+  			Variable denominator = (sd1/sd2)- (sd2/sd1)
+ 			c = numerator/denominator		
+		endif
+		
+		//Check if "c" is +/-Inf or a NaN
+		//If c is +/-Inf or a NaN, then there is no intersection point between Gaussians and the overlap is 100%
+		if(numtype(c) != 0)
+			a1 = amp1*sd1*sqrt(2*Pi)*(1/2)*(1 + erf((mu1)/(sd1*sqrt(2))))
+			a2 = amp2*sd2*sqrt(2*Pi)*(1/2)*(1 + erf((mu2)/(sd2*sqrt(2))))
+			
+			areaA1 = amp1*sd1*sqrt(2*Pi)
+			areaA2 = amp2*sd2*sqrt(2*Pi)
+			totAreaA = min(areaA1 , areaA2)
+						
+			if(amp1 > amp2)
+				ovpArea= ((a2)/totAreaA)*100
+			elseif(amp1 < amp2)
+				ovpArea= ((a1)/totAreaA)*100
+			endif
+		
+		else
+			if(mu1 < mu2)
+				a1 = amp1*sd1*sqrt(2*Pi)*(1/2)*(1 + erf((mu1 - c)/(sd1*sqrt(2))))
+				a2 = amp2*sd2*sqrt(2*Pi)*(1/2)*(1 + erf((c - mu2)/(sd2*sqrt(2))))
+			elseif(mu1 > mu2)
+				a1 = amp1*sd1*sqrt(2*Pi)*(1/2)*(1 + erf((c-mu1)/(sd1*sqrt(2))))
+				a2 = amp2*sd2*sqrt(2*Pi)*(1/2)*(1 + erf((mu2-c)/(sd2*sqrt(2))))
+			endif
+		
+			areaA1 = amp1*sd1*sqrt(2*Pi)
+			areaA2 = amp2*sd2*sqrt(2*Pi)
+			totAreaA = min(areaA1 , areaA2)
+			//totAreaA = (amp1*sd1*sqrt(2*Pi) + amp2*sd2*sqrt(2*Pi))/2
+			ovpArea  = ((a1 + a2)/totAreaA)*100
+		endif
 	endif
-
+	//ovpArea = round(ovpArea)
 	return ovpArea
 End
 
@@ -197,22 +235,36 @@ Function compGaussErf2(mu1,sd1,amp1,mu2,sd2,amp2,gRes,normal,[d,pk1,pk2])
 	Variable g2Area  = area(gWave2)
 	Variable totArea = (g1Area+g2Area)/2
 	print "The average area between the two Gaussians calculated by integration is:",totArea
-	Variable pOVP = (difArea/totArea)*100
+	Variable pOVP = (difArea/totArea)*100,a1,a2
 	print "The percent overlap calculated by integration is:",pOVP,"%"
 	if(normal)
 		if(sd1 == sd2)
 			Variable c = (mu1+mu2)/2
-		else
 			if(mu1 < mu2)
+				a1 = (1/2)*(1 + erf((mu1 - c)/(sd1*sqrt(2))))
+				a2 = (1/2)*(1 + erf((c - mu2)/(sd2*sqrt(2))))
+			elseif(mu1 > mu2)
+				a1 = (1/2)*(1 + erf((c-mu1)/(sd1*sqrt(2))))
+				a2 = (1/2)*(1 + erf((mu2-c)/(sd2*sqrt(2))))
+			endif
+		else
+			if(mu1 <= mu2)
 				c = (mu2*sd1^2 - sd2*(mu1*sd2 + sd1*sqrt((mu1-mu2)^2 + 2*(sd1^2 - sd2^2)*ln(sd1/sd2))))/(sd1^2 - sd2^2)
+				a1 = (1/2)*(1 + erf((mu1 - c)/(sd1*sqrt(2))))
+				a2 = (1/2)*(1 + erf((c - mu2)/(sd2*sqrt(2))))
 			elseif(mu1 > mu2)
 				c = (mu1*sd2^2 - sd1*(mu2*sd1 + sd2*sqrt((mu2-mu1)^2 + 2*(sd2^2 - sd1^2)*ln(sd2/sd1))))/(sd2^2 - sd1^2)
+				a1 = (1/2)*(1 + erf((c-mu1)/(sd1*sqrt(2))))
+				a2 = (1/2)*(1 + erf((mu2-c)/(sd2*sqrt(2))))
 			endif
 		endif
-		Variable a1 = (1/2) + (1/2)*erf((c - mu1)/(sd1*sqrt(2)))	//Area of Gauss1
-		Variable a2 = (1/2) + (1/2)*erf((c - mu2)/(sd2*sqrt(2)))	//Area of Gauss2
+	//	Variable a1 = (1/2) + (1/2)*erf((c - mu1)/(sd1*sqrt(2)))	//Area of Gauss1
+	//	Variable a2 = (1/2) + (1/2)*erf((c - mu2)/(sd2*sqrt(2)))	//Area of Gauss2
+		Variable areaA1 = sd1*sqrt(2*Pi)
+		Variable areaA2 = sd2*sqrt(2*Pi)
 		Variable totAreaA = ((1/(sd1*sqrt(2*Pi)))*sd1*sqrt(2*Pi) + (1/(sd2*sqrt(2*Pi)))*sd2*sqrt(2*Pi))/2
-		print "The percent overlap calculated via the CDF is:   ",(totAreaA - a1 + a2)*100,"%"
+		Variable ovpArea  = ((a1 + a2)/totAreaA)*100
+		print "The percent overlap calculated via the CDF is:   ",ovpArea//(totAreaA - a1 + a2)*100,"%"
 	elseif(!normal)
 	//Different cases for solving for c		
 		if(sd1 == sd2)
@@ -233,15 +285,15 @@ Function compGaussErf2(mu1,sd1,amp1,mu2,sd2,amp2,gRes,normal,[d,pk1,pk2])
 		//Check if "c" is +/-Inf or a NaN
 		//If c is +/-Inf or a NaN, then there is no intersection point between Gaussians and the overlap is 100%
 		if((mu1 == mu2) && (sd1 == sd2) && (amp1 == amp2))
-			Variable ovpArea = 100
+			ovpArea = 100
 			print "Peaks are identical. The percent overlap is: 100%"
 		elseif(numtype(c) != 0)
 			print "There is no intersection point between the two Gaussians"
 			a1 = amp1*sd1*sqrt(2*Pi)*(1/2)*(1 + erf((mu1)/(sd1*sqrt(2))))
 			a2 = amp2*sd2*sqrt(2*Pi)*(1/2)*(1 + erf((mu2)/(sd2*sqrt(2))))
 			
-			Variable areaA1 = amp1*sd1*sqrt(2*Pi)
-			Variable areaA2 = amp2*sd2*sqrt(2*Pi)
+			areaA1 = amp1*sd1*sqrt(2*Pi)
+			areaA2 = amp2*sd2*sqrt(2*Pi)
 			totAreaA = min(areaA1 , areaA2)
 			//Variable totAreaA2 = (areaA1 + areaA2)/2
 			
