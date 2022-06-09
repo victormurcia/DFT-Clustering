@@ -6,4 +6,14 @@ The algorithm works by defining the following parameters:
 2. An oscillator strength threshold that filters transitions that do not have a sufficiently high intensity from subsequent steps
 3. A peak overlap threshold that determines whether two transitions can be clustered together depending on the overlap area between them. 
 
-The code runs on IGOR however a Python implementation may be developed in the near future. Also, the code takes StoBe output files as input, however, as long as the computational platform provides transition energies, transition intensities and the components of the transition dipole moment, then the loading function can be modified to accomodate other platforms. 
+The code runs on IGOR 8, however a Python implementation may be developed in the near future. Also, the code takes StoBe output files as input, however, as long as the computational platform provides transition energies, transition intensities and the components of the transition dipole moment, then the loading function can be modified to accomodate other platforms. 
+ 
+ Setup
+1. Navigate to the following directory: Documets > Wavemetrics > Igor Pro 8 User Files
+2. Place the file clusteringPanel.ipf in the folder named "Igor Procedures"
+3. Next make a new directory inside the folder named "User Procedures" called "DFT Clustering" 
+4. Place all of the remaining files without a .py extension inside the newly created directory.
+5. Open an IGOR instance. There should be a tab titled Macros there. Within the dropdown menu in Macros there should be an option titled "Clustering Algorithm" which will load in the control panel for the algorithm.
+
+Bug reporting/Help
+For any concerns email me at victor.murcia@wsu.edu
