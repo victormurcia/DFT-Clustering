@@ -6,7 +6,9 @@ The algorithm works by defining the following parameters:
 2. An oscillator strength threshold that filters transitions that do not have a sufficiently high intensity from subsequent steps
 3. A peak overlap threshold that determines whether two transitions can be clustered together depending on the overlap area between them. 
 
-The code runs on IGOR 8, however a Python implementation may be developed in the near future. Also, the code takes StoBe output files as input, however, as long as the computational platform provides transition energies, transition intensities and the components of the transition dipole moment, then the loading function can be modified to accomodate other platforms. 
+The code runs on IGOR 8, however a Python implementation may be developed in the future. Also, the code takes StoBe output files as input, however, as long as the computational platform provides transition energies, transition intensities and the components of the transition dipole moment, then the loading function can be modified to accomodate other platforms. 
+
+The accompanying python files are there to 1. Facilitate the procedural generation of the .run files for a Transition Potential calculation carried out in StoBe 2. Extract the Mulliken Population Analysis from the StoBe output files that can be subsequently loaded into IGOR to aid in the chemical characterization of NEXAFS transitions. 
  
  Setup
 1. Navigate to the following directory: Documets > Wavemetrics > Igor Pro 8 User Files
