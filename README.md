@@ -16,7 +16,9 @@ The code runs on IGOR 8, however a Python implementation may be developed in the
   <img src="images/gui.png" />
 </p>
 
-The accompanying python files are there to 1. Facilitate the procedural generation of the .run files for a Transition Potential calculation carried out in StoBe 2. Extract the Mulliken Population Analysis from the StoBe output files that can be subsequently loaded into IGOR to aid in the chemical characterization of NEXAFS transitions. 
+The accompanying python files are there to:
+1. Facilitate the procedural generation of the .run files for a Transition Potential calculation carried out in StoBe 
+2. Extract the Mulliken Population Analysis from the StoBe output files that can be subsequently loaded into IGOR to aid in the chemical characterization of NEXAFS transitions. 
  
  Setup
 1. Navigate to the following directory: Documents > Wavemetrics > Igor Pro 8 User Files
