@@ -20,7 +20,7 @@ The accompanying python files are there to 1. Facilitate the procedural generati
  
  Setup
 1. Navigate to the following directory: Documets > Wavemetrics > Igor Pro 8 User Files
-2. Place the file clusteringPanel.ipf in the folder named "Igor Procedures"
+2. Place the file clusteringPanel v1.ipf in the folder named "Igor Procedures"
 3. Next make a new directory inside the folder named "User Procedures" called "DFT Clustering" 
 4. Place all of the remaining files without a .py extension inside the newly created directory.
 5. Open an IGOR instance. There should be a tab titled Macros there. Within the dropdown menu in Macros there should be an option titled "Clustering Algorithm" which will load in the control panel for the algorithm.
