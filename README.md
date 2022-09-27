@@ -1,5 +1,5 @@
 # DFT-Clustering
-This code allows one to take a DFT calculation using the computatational platform StoBe of NEXAFS spectra. The result is a set of peaks that make up a Building Block model using a tensor based formalism that can be used to carry out simultaneous fits on angle resolved NEXAFS for the extraction of the molecular tilt angle. These peaks can then be used to obtain optical constants that could be subsequently used in the analysis of Resonant Soft X-Ray Scattering (R-SoXS) and Resonant X-Ray Reflectivity (XRR).
+This program takes the output of DFT calculations carried out in the the computational platform StoBe for the simulation of NEXAFS to generate an optical tensor model derived from first principles. The result is a set of peaks that make up an optical model using a tensor based formalism that can be used to carry out simultaneous fits on angle resolved NEXAFS for the extraction of the molecular tilt angle. These peaks can then be used to obtain optical constants that could be subsequently used in the analysis of Resonant Soft X-Ray Scattering (R-SoXS) and Resonant X-Ray Reflectivity (XRR).
 
 <p align="center">
   <img src="images/ovps.png" />
