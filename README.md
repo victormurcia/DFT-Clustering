@@ -19,10 +19,10 @@ The code runs on IGOR 8, however a Python implementation may be developed in the
 The accompanying python files are there to 1. Facilitate the procedural generation of the .run files for a Transition Potential calculation carried out in StoBe 2. Extract the Mulliken Population Analysis from the StoBe output files that can be subsequently loaded into IGOR to aid in the chemical characterization of NEXAFS transitions. 
  
  Setup
-1. Navigate to the following directory: Documets > Wavemetrics > Igor Pro 8 User Files
+1. Navigate to the following directory: Documents > Wavemetrics > Igor Pro 8 User Files
 2. Place the file clusteringPanel v1.ipf in the folder named "Igor Procedures"
-3. Next make a new directory inside the folder named "User Procedures" called "DFT Clustering" 
-4. Place all of the remaining files without a .py extension inside the newly created directory.
+3. Navigate to the folder Documents > Wavemetrics > Igor Pro 8 User Files > User Procedures  
+4. Place the contents of the folder "DFT_Clustering" inside the "User Procedures" directory
 5. Open an IGOR instance. There should be a tab titled Macros there. Within the dropdown menu in Macros there should be an option titled "Clustering Algorithm" which will load in the control panel for the algorithm.
 
 Bug reporting/Help
