@@ -10,6 +10,10 @@ The algorithm works by defining the following parameters:
 2. An oscillator strength threshold that filters transitions that do not have a sufficiently high intensity from subsequent steps
 3. A peak overlap threshold that determines whether two transitions can be clustered together depending on the overlap area between them. 
 
+<p align="center">
+  <img src="images/dft bb to mo cl8.png">
+</p>
+
 The code runs on IGOR 8, however a Python implementation may be developed in the future. Also, the code takes StoBe output files as input, however, as long as the computational platform provides transition energies, transition intensities and the components of the transition dipole moment, then the loading function can be modified to accomodate other platforms. 
 
 <p align="center">
