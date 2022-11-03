@@ -13,7 +13,7 @@ The algorithm works by defining the following parameters:
 These peak overlaps can then be subsequently used to generate a more compact set of peaks (i.e. transition clusters) that are representative of all the transitions initially calculated by the TP-DFT. The transition clusters are then combined with angle-resolved NEXAFS measurements in order to generate a quantitatively accurate optical model derived from first principle calculations.
 
 <p align="center">
-  <img src="images/znpc bb fits for xrr both.png">
+  <img src="images/znpc bb fits for xrr both.png" width="500" height="500">
 </p>
 
 Finally, the transition clusters that comprise the optical model can be used to identify the chemical, energetic and orientational character of the various NEXAFS features in addition to allow these NEXAFS features to be associated with specific MOs calculated from the TP-DFT.
