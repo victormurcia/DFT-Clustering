@@ -1,0 +1,210 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 11.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[      6419,        200]
+NotebookOptionsPosition[      6021,        182]
+NotebookOutlinePosition[      6366,        197]
+CellTagsIndexPosition[      6323,        194]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"nA", "=", 
+   RowBox[{"(", GridBox[{
+      {"0", "0", "0"},
+      {"0", 
+       RowBox[{"Subscript", "[", 
+        RowBox[{"n", ",", 
+         RowBox[{"\[Null]", "\[Perpendicular]", "\[Null]A"}]}], "]"}], 
+       RowBox[{"Subscript", "[", 
+        RowBox[{"x", ",", "A"}], "]"}]},
+      {"0", 
+       RowBox[{"Subscript", "[", 
+        RowBox[{"y", ",", "A"}], "]"}], 
+       RowBox[{"Subscript", "[", 
+        RowBox[{"n", ",", 
+         RowBox[{"\[Null]", "\[DoubleVerticalBar]", "\[Null]A"}]}], "]"}]}
+     }], ")"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"nB", "=", 
+   RowBox[{"(", GridBox[{
+      {"0", "0", "0"},
+      {"0", 
+       RowBox[{"Subscript", "[", 
+        RowBox[{"n", ",", 
+         RowBox[{"\[Null]", "\[Perpendicular]", "\[Null]B"}]}], "]"}], 
+       RowBox[{"Subscript", "[", 
+        RowBox[{"x", ",", "B"}], "]"}]},
+      {"0", 
+       RowBox[{"Subscript", "[", 
+        RowBox[{"y", ",", "B"}], "]"}], 
+       RowBox[{"Subscript", "[", 
+        RowBox[{"n", ",", 
+         RowBox[{"\[Null]", "\[DoubleVerticalBar]", "\[Null]B"}]}], "]"}]}
+     }], ")"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Spol", "=", 
+   RowBox[{"(", "\[NoBreak]", GridBox[{
+      {"0"},
+      {
+       RowBox[{"Subscript", "[", 
+        RowBox[{"\[CapitalEpsilon]", ",", "s"}], "]"}]},
+      {"0"}
+     }], "\[NoBreak]", ")"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"Ppol", "=", 
+   RowBox[{"(", "\[NoBreak]", GridBox[{
+      {"0"},
+      {"0"},
+      {
+       RowBox[{"Subscript", "[", 
+        RowBox[{"\[CapitalEpsilon]", ",", "p"}], "]"}]}
+     }], "\[NoBreak]", ")"}]}], ";"}]}], "Input",
+ CellChangeTimes->{{3.753726977841465*^9, 3.753727318764965*^9}, {
+  3.753727387668906*^9, 3.753727723789131*^9}, {3.753727773909998*^9, 
+  3.753727804671757*^9}, {3.75372787447775*^9, 3.7537280340638776`*^9}, {
+  3.7537282625819483`*^9, 3.753728278278846*^9}, {3.75372833482308*^9, 
+  3.7537283429275436`*^9}, {3.7537284062781672`*^9, 3.7537284741170473`*^9}, {
+  3.7537286604597054`*^9, 3.75372868868032*^9}, {3.7537291477895794`*^9, 
+  3.7537291509257584`*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{"AsPol", "=", 
+   RowBox[{"nA", ".", "Spol"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"BsPol", "=", 
+   RowBox[{"nB", ".", "Spol"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"ApPol", "=", 
+   RowBox[{"nA", ".", "Ppol"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"BpPol", "=", 
+   RowBox[{"nB", ".", "Ppol"}]}], ";"}], "\[IndentingNewLine]", 
+ RowBox[{"Stot", "=", 
+  RowBox[{"MatrixForm", "[", 
+   RowBox[{"AsPol", "+", "BsPol"}], "]"}]}], "\[IndentingNewLine]", 
+ RowBox[{"Ptot", "=", 
+  RowBox[{"MatrixForm", "[", 
+   RowBox[{"ApPol", "+", "BpPol"}], "]"}]}]}], "Input",
+ CellChangeTimes->{{3.753728515688425*^9, 3.753728580709144*^9}, {
+  3.7537286973498154`*^9, 3.753728877701131*^9}}],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {"0"},
+     {
+      RowBox[{
+       RowBox[{
+        SubscriptBox["n", 
+         RowBox[{"\[Null]", "\[Perpendicular]", "\[Null]A"}]], " ", 
+        SubscriptBox["\[CapitalEpsilon]", "s"]}], "+", 
+       RowBox[{
+        SubscriptBox["n", 
+         RowBox[{"\[Null]", "\[Perpendicular]", "\[Null]B"}]], " ", 
+        SubscriptBox["\[CapitalEpsilon]", "s"]}]}]},
+     {
+      RowBox[{
+       RowBox[{
+        SubscriptBox["y", "A"], " ", 
+        SubscriptBox["\[CapitalEpsilon]", "s"]}], "+", 
+       RowBox[{
+        SubscriptBox["y", "B"], " ", 
+        SubscriptBox["\[CapitalEpsilon]", "s"]}]}]}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.7537288604351435`*^9, 3.7537288787731924`*^9}, 
+   3.7537291557010317`*^9}],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {"0"},
+     {
+      RowBox[{
+       RowBox[{
+        SubscriptBox["x", "A"], " ", 
+        SubscriptBox["\[CapitalEpsilon]", "p"]}], "+", 
+       RowBox[{
+        SubscriptBox["x", "B"], " ", 
+        SubscriptBox["\[CapitalEpsilon]", "p"]}]}]},
+     {
+      RowBox[{
+       RowBox[{
+        SubscriptBox["n", 
+         RowBox[{"\[Null]", "\[DoubleVerticalBar]", "\[Null]A"}]], " ", 
+        SubscriptBox["\[CapitalEpsilon]", "p"]}], "+", 
+       RowBox[{
+        SubscriptBox["n", 
+         RowBox[{"\[Null]", "\[DoubleVerticalBar]", "\[Null]B"}]], " ", 
+        SubscriptBox["\[CapitalEpsilon]", "p"]}]}]}
+    },
+    GridBoxAlignment->{
+     "Columns" -> {{Center}}, "ColumnsIndexed" -> {}, "Rows" -> {{Baseline}}, 
+      "RowsIndexed" -> {}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "ColumnsIndexed" -> {}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}, "RowsIndexed" -> {}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{{3.7537288604351435`*^9, 3.7537288787731924`*^9}, 
+   3.753729155709032*^9}]
+}, Open  ]]
+},
+WindowSize->{639, 982},
+WindowMargins->{{Automatic, 6}, {Automatic, 0}},
+FrontEndVersion->"11.0 for Microsoft Windows (64-bit) (September 21, 2016)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[558, 20, 2138, 59, 237, "Input"],
+Cell[CellGroupData[{
+Cell[2721, 83, 762, 20, 126, "Input"],
+Cell[3486, 105, 1255, 36, 77, "Output"],
+Cell[4744, 143, 1261, 36, 136, "Output"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+
