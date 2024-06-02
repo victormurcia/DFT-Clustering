@@ -22,7 +22,7 @@ Finally, the transition clusters that comprise the optical model can be used to 
   <img src="images/dft bb to mo cl8.png"  width="500" height="500">
 </p>
 
-The code runs on IGOR 8, however a Python implementation may be developed in the future. Also, the code takes StoBe output files as input, however, as long as the computational platform provides transition energies, transition intensities and the components of the transition dipole moment, then the loading function can be modified to accomodate other platforms. 
+The code runs on IGOR 8, however a Python implementation may be developed in the future (here's an initial, crude implementation of just the DFT clustering portion in Python: https://github.com/victormurcia/StoBe-Data-Loader/tree/main). Also, the code takes StoBe output files as input, however, as long as the computational platform provides transition energies, transition intensities and the components of the transition dipole moment, then the loading function can be modified to accomodate other platforms. 
 
 <p align="center">
   <img src="images/gui.png" />
